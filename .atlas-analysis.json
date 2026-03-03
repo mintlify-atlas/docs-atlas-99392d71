@@ -1,0 +1,97 @@
+{
+  "projectType": "saas",
+  "projectName": "An Anime Game Launcher",
+  "projectDescription": "A feature-rich game launcher for Linux with telemetry disabling and advanced Wine/DXVK management",
+  "theme": "almond",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#7C3AED",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/game-management",
+              "features/wine-configuration",
+              "features/telemetry-disabling",
+              "features/localization"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/first-run-setup",
+              "guides/updating-games",
+              "guides/voice-packs",
+              "guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/settings-overview",
+              "configuration/wine-and-dxvk",
+              "configuration/enhancements",
+              "configuration/game-paths"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/architecture",
+              "development/building",
+              "development/contributing"
+            ]
+          },
+          {
+            "group": "Packaging",
+            "pages": [
+              "development/packaging/flatpak",
+              "development/packaging/aur",
+              "development/packaging/nixos"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Cross-platform game launcher for Linux",
+    "Automatic Wine and DXVK installation and management",
+    "Telemetry disabling for privacy protection",
+    "Multi-language support (20+ languages)",
+    "Game update and voice pack management",
+    "Multiple launcher styles (Modern and Classic)",
+    "Predownload support for game updates",
+    "Session management for multiple game instances"
+  ],
+  "publicApiSurface": [
+    "Config::get() - Load launcher configuration",
+    "LauncherState::get_from_config() - Get current launcher state",
+    "Game::new() - Create game instance",
+    "ComponentsLoader::new() - Load components index",
+    "Sessions::set_current() - Switch active session",
+    "anime_launcher_sdk::genshin::game::run() - Launch game",
+    "VersionDiff::download() - Download game updates",
+    "--debug - Enable debug logging",
+    "--run-game - Run game directly",
+    "--just-run-game - Force run game",
+    "--session <name> - Switch session before launch"
+  ]
+}
