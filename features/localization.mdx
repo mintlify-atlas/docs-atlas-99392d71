@@ -1,0 +1,466 @@
+---
+title: Localization
+description: Multi-language support and internationalization in An Anime Game Launcher
+---
+
+## Overview
+
+An Anime Game Launcher supports 20 languages with full localization powered by the Fluent localization system. The launcher automatically detects your system language and provides seamless translation for all UI elements.
+
+## Supported Languages
+
+The launcher supports the following languages:
+
+<AccordionGroup>
+  <Accordion title="Western Languages (9)">
+    - **English (US)** - `en-us` (Fallback language)
+    - **German** - `de-de` (Deutsch)
+    - **French** - `fr-fr` (Français)
+    - **Spanish** - `es-es` (Español)
+    - **Portuguese (Brazil)** - `pt-br` (Português)
+    - **Italian** - `it-it` (Italiano)
+    - **Dutch** - `nl-nl` (Nederlands)
+    - **Swedish** - `sv-se` (Svenska)
+    - **Polish** - `pl-pl` (Polski)
+  </Accordion>
+
+  <Accordion title="Eastern European Languages (3)">
+    - **Russian** - `ru-ru` (Русский)
+    - **Ukrainian** - `uk-ua` (Українська)
+    - **Czech** - `cs-cz` (Čeština)
+    - **Hungarian** - `hu-hu` (Magyar)
+  </Accordion>
+
+  <Accordion title="Asian Languages (6)">
+    - **Chinese (Simplified)** - `zh-cn` (简体中文)
+    - **Chinese (Traditional)** - `zh-tw` (繁體中文)
+    - **Japanese** - `ja-jp` (日本語)
+    - **Korean** - `ko-kr` (한국어)
+    - **Indonesian** - `id-id` (Indonesia)
+    - **Vietnamese** - `vi-vn` (Tiếng Việt)
+    - **Thai** - `th-th` (ไทย)
+  </Accordion>
+
+  <Accordion title="Other Languages (2)">
+    - **Turkish** - `tr-tr` (Türkçe)
+  </Accordion>
+</AccordionGroup>
+
+**Total:** 20 supported languages
+
+**Implementation:** `src/i18n.rs`
+
+## Language Detection
+
+The launcher automatically detects your system language using environment variables.
+
+### Detection Order
+
+Language is detected by checking environment variables in this order:
+
+1. `LC_ALL` - Complete locale override
+2. `LC_MESSAGES` - Message translation locale
+3. `LANG` - System default locale
+
+**Implementation:**
+
+```rust
+pub fn get_default_lang() -> &'static LanguageIdentifier {
+    let current = std::env::var("LC_ALL")
+        .unwrap_or_else(|_| std::env::var("LC_MESSAGES")
+        .unwrap_or_else(|_| std::env::var("LANG")
+        .unwrap_or_else(|_| String::from("en_us"))))
+        .to_ascii_lowercase();
+
+    for lang in SUPPORTED_LANGUAGES {
+        if current.starts_with(lang.language.as_str()) {
+            return lang;
+        }
+    }
+
+    &FALLBACK
+}
+```
+
+### Fallback Behavior
+
+If your system language is not supported, the launcher falls back to **English (US)**:
+
+```rust
+static FALLBACK: LanguageIdentifier = langid!("en-us");
+```
+
+<Info>
+Language detection is performed once during launcher initialization and stored in a static variable for performance.
+</Info>
+
+## Language Configuration
+
+### Setting Language Programmatically
+
+The language can be set programmatically:
+
+```rust
+pub fn set_lang(lang: LanguageIdentifier) -> anyhow::Result<()> {
+    if SUPPORTED_LANGUAGES.iter().any(|item| item.language == lang.language) {
+        LANG.set(lang).expect("Can't overwrite language!");
+        Ok(())
+    }
+    else {
+        anyhow::bail!("Language '{lang}' is not supported")
+    }
+}
+```
+
+**Validation:** The function verifies that the requested language is in the supported languages list.
+
+**Error Handling:** Returns an error if an unsupported language is requested.
+
+### Getting Current Language
+
+```rust
+pub fn get_lang() -> &'static LanguageIdentifier {
+    LANG.get().expect("Language hasn't been initialized!")
+}
+```
+
+<Warning>
+Calling `get_lang()` before language initialization will cause a panic. Always ensure the launcher has completed initialization before accessing the language.
+</Warning>
+
+## Fluent Localization System
+
+The launcher uses [Fluent](https://projectfluent.org/) for localization, providing:
+
+- Natural-sounding translations
+- Support for complex grammar rules
+- Pluralization handling
+- Variable interpolation
+- Fallback mechanisms
+
+### Locale Files
+
+**Location:** `./assets/locales/`
+
+**Structure:**
+```
+assets/locales/
+├── common.ftl (core translations)
+├── en/
+│   └── [translation files]
+├── ru/
+│   └── [translation files]
+├── de/
+│   └── [translation files]
+└── [other language directories]
+```
+
+### Static Loader Configuration
+
+```rust
+fluent_templates::static_loader! {
+    pub static LOCALES = {
+        locales: "./assets/locales",
+        core_locales: "./assets/locales/common.ftl",
+        fallback_language: "en"
+    };
+}
+```
+
+**Key settings:**
+- `locales`: Directory containing all locale files
+- `core_locales`: Common translations shared across all languages
+- `fallback_language`: Used when a translation is missing
+
+## Translation Macro
+
+The `tr!()` macro provides easy access to translations throughout the codebase.
+
+### Basic Usage
+
+**Without parameters:**
+
+```rust
+let message = tr!("launch");
+// Returns: "Launch" (or equivalent in current language)
+```
+
+**With parameters:**
+
+```rust
+let message = tr!("game-outdated", {
+    "latest" = "3.3.0"
+});
+// Returns: "Game outdated. Latest version: 3.3.0" (translated)
+```
+
+### Implementation Details
+
+```rust
+macro_rules! tr {
+    ($id:expr) => {
+        {
+            use fluent_templates::Loader;
+            $crate::i18n::LOCALES.lookup($crate::i18n::get_lang(), $id)
+        }
+    };
+
+    ($id:expr, { $($key:literal = $value:expr),* }) => {
+        {
+            use std::collections::HashMap;
+            use fluent_templates::Loader;
+            use fluent_templates::fluent_bundle::FluentValue;
+
+            let mut args = HashMap::new();
+
+            $(
+                args.insert($key.into(), FluentValue::from($value));
+            )*
+
+            $crate::i18n::LOCALES.lookup_complete($crate::i18n::get_lang(), $id, Some(&args))
+        }
+    };
+}
+```
+
+### Translation Examples in the Code
+
+Throughout the launcher, translations are used for all UI elements:
+
+**Window titles:**
+```rust
+set_title: "An Anime Game Launcher"
+```
+
+**Button labels:**
+```rust
+set_label: &tr!("launch")
+set_label: &tr!("download")
+set_label: &tr!("disable-telemetry")
+```
+
+**Toast notifications:**
+```rust
+sender.input(AppMsg::Toast {
+    title: tr!("downloading-failed"),
+    description: Some(err.to_string())
+});
+```
+
+**Dynamic translations with parameters:**
+```rust
+tr!("predownload-update", {
+    "version" = game.latest().to_string(),
+    "size" = prettify_bytes(size)
+})
+```
+
+## Language-Specific Features
+
+### Language Formatting
+
+The launcher provides a utility function to format language identifiers:
+
+```rust
+pub fn format_lang(lang: &LanguageIdentifier) -> String {
+    format!("{}-{}", lang.language, match lang.region {
+        Some(region) => region.to_string().to_ascii_lowercase(),
+        None => lang.language.to_string()
+    })
+}
+```
+
+**Example output:**
+- `en-us`
+- `ru-ru`
+- `zh-cn`
+
+### Language Identifiers
+
+Languages are represented using the `unic_langid` crate:
+
+```rust
+use unic_langid::{langid, LanguageIdentifier};
+
+pub const SUPPORTED_LANGUAGES: &[LanguageIdentifier] = &[
+    langid!("en-us"),
+    langid!("ru-ru"),
+    langid!("de-de"),
+    // ... more languages
+];
+```
+
+## Common Translations
+
+The `common.ftl` file contains core translations used across the application:
+
+### Company and Game Names
+
+```fluent
+-company-name-1 = mi
+-company-name-2 = Ho
+-company-name-3 = Yo
+company-name = {-company-name-1}{-company-name-2}{-company-name-3}
+
+-game-name-1 = Gens
+-game-name-2 = hin
+-game-name-3 = Imp
+-game-name-4 = act
+game-name = {-game-name-1}{-game-name-2} {-game-name-3}{-game-name-4}
+```
+
+<Note>
+Names are split into parts to avoid potential trademark/brand issues in the source code.
+</Note>
+
+### Language Display Names
+
+```fluent
+en-us = English
+ru-ru = Русский
+de-de = Deutsch
+fr-fr = Français
+# ... more languages
+```
+
+These are used in language selection dropdowns, displaying each language in its native script.
+
+## RTL Language Support
+
+While the launcher currently doesn't include Right-to-Left (RTL) languages like Arabic or Hebrew, the Fluent localization system supports them. Future versions could add:
+
+- Arabic (`ar`)
+- Hebrew (`he`)
+- Persian (`fa`)
+
+With automatic RTL layout switching.
+
+## Adding New Translations
+
+To add a new language:
+
+<Steps>
+  <Step title="Add Language Identifier">
+    Add the language to `SUPPORTED_LANGUAGES` in `src/i18n.rs`:
+    
+    ```rust
+    pub const SUPPORTED_LANGUAGES: &[LanguageIdentifier] = &[
+        // ... existing languages
+        langid!("new-lang"),
+    ];
+    ```
+  </Step>
+
+  <Step title="Create Locale Directory">
+    Create a new directory in `assets/locales/`:
+    
+    ```bash
+    mkdir -p assets/locales/new-lang
+    ```
+  </Step>
+
+  <Step title="Add Translation Files">
+    Create `.ftl` files with translations for all UI strings.
+  </Step>
+
+  <Step title="Add Language Name">
+    Add the language's native name to `common.ftl`:
+    
+    ```fluent
+    new-lang = Native Language Name
+    ```
+  </Step>
+
+  <Step title="Test">
+    Set your system locale to the new language and test the launcher.
+  </Step>
+</Steps>
+
+## Translation Quality
+
+All translations should:
+
+- Use natural, idiomatic expressions
+- Follow the language's grammar rules
+- Match the tone of the original English text
+- Be culturally appropriate
+- Include proper punctuation and capitalization
+
+<Info>
+Community contributions for translation improvements are welcome! Submit corrections via the project's repository.
+</Info>
+
+## Environment Variable Override
+
+You can override the launcher's language by setting environment variables:
+
+**Force Russian:**
+```bash
+export LANG=ru_RU.UTF-8
+./anime-launcher
+```
+
+**Force Japanese:**
+```bash
+export LC_ALL=ja_JP.UTF-8
+./anime-launcher
+```
+
+**Force English (for debugging):**
+```bash
+export LANG=en_US.UTF-8
+./anime-launcher
+```
+
+## Performance Considerations
+
+### Static Initialization
+
+Language selection happens once at startup:
+
+```rust
+pub static LANG: OnceLock<LanguageIdentifier> = OnceLock::new();
+```
+
+**Benefits:**
+- No runtime language detection overhead
+- Thread-safe access
+- Zero-cost after initialization
+
+### Translation Caching
+
+The Fluent system caches compiled translation bundles, ensuring fast lookups even with complex grammar rules.
+
+## Debugging Translations
+
+### Missing Translation Keys
+
+If a translation key is missing, Fluent falls back to:
+1. The English translation (if available)
+2. The translation key itself (if no fallback exists)
+
+**In logs:**
+```
+WARN: Missing translation for key "some-key" in language "ru-ru"
+```
+
+### Testing Different Languages
+
+To test a specific language without changing system settings:
+
+```bash
+LANG=de_DE.UTF-8 ./anime-launcher
+```
+
+## Accessibility
+
+Proper localization improves accessibility:
+
+- Native language support for non-English speakers
+- Clear, unambiguous translations
+- Consistent terminology across the application
+- Support for screen readers (via translated labels)
+
+<Info>
+All UI elements use the translation system, ensuring comprehensive language coverage throughout the launcher.
+</Info>

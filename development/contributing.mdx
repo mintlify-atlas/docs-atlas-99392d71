@@ -1,0 +1,397 @@
+---
+title: "Contributing"
+description: "Guidelines for contributing to An Anime Game Launcher development"
+---
+
+## Project Status
+
+<Info>
+This project is in **maintenance mode** and is considered feature complete. It will continue to receive updates with bugfixes and support for new versions of the game.
+</Info>
+
+The launcher is actively maintained by contributors who keep it up to date with the latest game changes. The project's future is in the [universal launcher](https://github.com/an-anime-team/anime-games-launcher) which aims to unite all An Anime Team launchers.
+
+## Getting Started
+
+Before contributing, make sure you:
+
+1. **Join the Discord server** - All project communication happens on [Discord](https://discord.gg/ck37X6UWBp)
+2. **Read the wiki** - Check the [project wiki](https://github.com/an-anime-team/an-anime-game-launcher/wiki) for context
+3. **Set up your development environment** - Follow the [building guide](/development/building)
+4. **Understand the architecture** - Review the [architecture documentation](/development/architecture)
+
+## Development Workflow
+
+### Setting Up Your Development Environment
+
+<Steps>
+  <Step title="Fork and clone">
+    Fork the repository on GitHub and clone your fork:
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/an-anime-game-launcher.git
+    cd an-anime-game-launcher
+    ```
+  </Step>
+
+  <Step title="Add upstream remote">
+    Add the original repository as upstream:
+    ```bash
+    git remote add upstream https://github.com/an-anime-team/an-anime-game-launcher.git
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all required development dependencies as described in the [building guide](/development/building#prerequisites).
+  </Step>
+
+  <Step title="Test the build">
+    Verify everything works:
+    ```bash
+    cargo build
+    cargo run
+    ```
+  </Step>
+</Steps>
+
+### Making Changes
+
+<Steps>
+  <Step title="Create a feature branch">
+    Always work in a feature branch:
+    ```bash
+    git checkout -b feature/your-feature-name
+    # or
+    git checkout -b fix/issue-description
+    ```
+  </Step>
+
+  <Step title="Make your changes">
+    - Write clean, readable code
+    - Follow existing code style and patterns
+    - Test your changes thoroughly
+    - Update documentation if needed
+  </Step>
+
+  <Step title="Test your changes">
+    Run the launcher and test affected functionality:
+    ```bash
+    # Run with debug output
+    cargo run -- --debug
+    
+    # Test specific scenarios
+    cargo run -- --session test
+    
+    # Check code compiles
+    cargo check
+    ```
+  </Step>
+
+  <Step title="Commit your changes">
+    Write clear, descriptive commit messages:
+    ```bash
+    git add .
+    git commit -m "feat: add support for new game version"
+    # or
+    git commit -m "fix: resolve crash on startup with missing config"
+    ```
+  </Step>
+</Steps>
+
+## Code Style Guidelines
+
+### Rust Code Style
+
+The project uses standard Rust formatting. A `rustfmt.toml` is provided:
+
+```bash
+# Format your code
+cargo fmt
+
+# Check formatting without modifying files
+cargo fmt -- --check
+```
+
+### Code Organization
+
+- **Modularity**: Keep components self-contained and focused
+- **Use existing patterns**: Follow the Relm4 component architecture used throughout
+- **Error handling**: Use `anyhow::Result` for error propagation
+- **Logging**: Use `tracing` macros for logging:
+  ```rust
+  tracing::info!("Starting download");
+  tracing::warn!("Configuration may be outdated");
+  tracing::error!("Failed to parse response: {}", err);
+  ```
+
+### File Organization
+
+Follow the existing structure:
+- UI components in `src/ui/`
+- Group related functionality in modules
+- Use `mod.rs` for module coordination
+- Keep business logic separate from UI code
+
+## Localization
+
+The launcher supports multiple languages using Fluent:
+
+### Adding New Translations
+
+<Steps>
+  <Step title="Locate language files">
+    Translation files are in `assets/locales/`:
+    ```
+    assets/locales/
+    ├── en/
+    ├── es/
+    ├── fr/
+    ├── zh_cn/
+    └── ...
+    ```
+  </Step>
+
+  <Step title="Add or update translations">
+    Edit the `.ftl` files for your language:
+    ```fluent
+    # Example from en/main.ftl
+    welcome = Welcome to An Anime Game Launcher
+    launch-game = Launch Game
+    downloading = Downloading...
+    ```
+  </Step>
+
+  <Step title="Use the fluentscan tool">
+    The project includes `fluentscan.py` to help manage translations:
+    ```bash
+    python3 fluentscan.py
+    ```
+  </Step>
+</Steps>
+
+## Submitting Contributions
+
+### Pull Request Process
+
+<Steps>
+  <Step title="Update your branch">
+    Ensure your branch is up to date with upstream:
+    ```bash
+    git fetch upstream
+    git rebase upstream/main
+    ```
+  </Step>
+
+  <Step title="Push to your fork">
+    ```bash
+    git push origin feature/your-feature-name
+    ```
+  </Step>
+
+  <Step title="Create pull request">
+    1. Go to the [main repository](https://github.com/an-anime-team/an-anime-game-launcher)
+    2. Click "Pull requests" → "New pull request"
+    3. Click "compare across forks"
+    4. Select your fork and branch
+    5. Fill in the PR template with:
+       - **Description**: What changes you made and why
+       - **Testing**: How you tested the changes
+       - **Related issues**: Link any related issues
+  </Step>
+
+  <Step title="Respond to feedback">
+    - Be responsive to review comments
+    - Make requested changes promptly
+    - Ask questions if anything is unclear
+  </Step>
+</Steps>
+
+### Pull Request Guidelines
+
+<Accordion title="PR Title Format">
+  Use conventional commit format:
+  
+  - `feat:` - New feature
+  - `fix:` - Bug fix
+  - `docs:` - Documentation changes
+  - `style:` - Code style changes (formatting, etc.)
+  - `refactor:` - Code refactoring
+  - `perf:` - Performance improvements
+  - `test:` - Adding or updating tests
+  - `chore:` - Maintenance tasks
+  
+  Examples:
+  - `feat: add support for game version 5.0`
+  - `fix: prevent crash when config is corrupted`
+  - `docs: update installation instructions`
+</Accordion>
+
+<Accordion title="What to Include">
+  **Good PRs include:**
+  - Clear description of changes
+  - Explanation of why the change is needed
+  - Screenshots for UI changes
+  - Testing steps you performed
+  - Reference to related issues
+  
+  **Avoid:**
+  - Mixing unrelated changes
+  - Large refactors without discussion
+  - Changes to code formatting across the entire codebase
+  - Adding dependencies without justification
+</Accordion>
+
+## Bug Reports and Issues
+
+### Reporting Bugs
+
+<Warning>
+  **Contact the dev directly on Discord** for bug reports and questions. GitHub issues may not be monitored as actively.
+</Warning>
+
+When reporting issues:
+
+1. **Check existing issues** - Your issue may already be reported
+2. **Use Discord first** - Most questions can be answered quickly there
+3. **Provide details**:
+   - Launcher version (`anime-game-launcher --version`)
+   - Distribution and version
+   - Desktop environment (GNOME, KDE, etc.)
+   - Steps to reproduce
+   - Debug logs from `~/.local/share/anime-game-launcher/debug.log`
+
+### Running in Debug Mode
+
+Always include debug logs with bug reports:
+
+```bash
+# Run with debug output
+./anime-game-launcher --debug
+
+# Debug log location
+~/.local/share/anime-game-launcher/debug.log
+```
+
+## Working with anime-launcher-sdk
+
+Many features are implemented in the SDK. If your contribution requires SDK changes:
+
+<Steps>
+  <Step title="Check if SDK changes are needed">
+    The SDK handles:
+    - Game version checking and updates
+    - Wine/Proton management
+    - DXVK installation
+    - Game configuration and state
+    - Patch application
+  </Step>
+
+  <Step title="Coordinate changes">
+    1. Discuss on Discord first
+    2. Submit SDK PR if needed
+    3. Wait for SDK changes to be released
+    4. Update launcher to use new SDK version
+  </Step>
+
+  <Step title="Test with local SDK">
+    For development, use a local SDK path:
+    ```toml
+    [dependencies.anime-launcher-sdk]
+    path = "../anime-launcher-sdk"
+    features = ["all", "genshin"]
+    ```
+    
+    Remember to revert before submitting!
+  </Step>
+</Steps>
+
+## Documentation Contributions
+
+Documentation is as important as code:
+
+<CardGroup cols={2}>
+  <Card title="Wiki Updates" icon="book">
+    The [project wiki](https://github.com/an-anime-team/an-anime-game-launcher/wiki) contains installation guides and FAQ. Help keep it up to date!
+  </Card>
+  
+  <Card title="Code Comments" icon="comment">
+    Well-commented code helps future contributors understand your changes.
+  </Card>
+  
+  <Card title="README Updates" icon="file-lines">
+    Keep README.md accurate, especially installation instructions.
+  </Card>
+  
+  <Card title="CHANGELOG" icon="list">
+    Significant changes should be noted in CHANGELOG.md
+  </Card>
+</CardGroup>
+
+## Community Guidelines
+
+### Communication
+
+- **Be respectful** - Treat all community members with respect
+- **Be patient** - Maintainers and contributors are volunteers
+- **Be constructive** - Provide helpful feedback and suggestions
+- **Use Discord** - Most real-time discussion happens there
+
+### What to Contribute
+
+Given the maintenance mode status, focus on:
+
+<Check>
+  **Welcomed contributions:**
+  - Bug fixes for crashes or critical issues
+  - Compatibility updates for new game versions
+  - Translation updates and new languages
+  - Documentation improvements
+  - Build system fixes
+  - Performance optimizations
+</Check>
+
+<Warning>
+  **Discuss first:**
+  - New features (project is feature-complete)
+  - Large refactors
+  - Dependency changes
+  - UI/UX changes
+</Warning>
+
+## Package Maintainers
+
+If you maintain a distribution package:
+
+1. **Join Discord** - Stay updated on releases
+2. **Test pre-releases** - Help catch issues before stable release
+3. **Report downstream issues** - Share problems specific to your distribution
+4. **Keep wiki updated** - Update installation instructions for your distro
+
+See the [README](https://github.com/an-anime-team/an-anime-game-launcher#-download) for current package maintainers.
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Discord Server" icon="discord" href="https://discord.gg/ck37X6UWBp">
+    Join for real-time help and discussion
+  </Card>
+  
+  <Card title="Wiki" icon="book" href="https://github.com/an-anime-team/an-anime-game-launcher/wiki">
+    FAQ and detailed guides
+  </Card>
+  
+  <Card title="Repository" icon="github" href="https://github.com/an-anime-team/an-anime-game-launcher">
+    Source code and issues
+  </Card>
+  
+  <Card title="Changelog" icon="clock" href="https://github.com/an-anime-team/an-anime-game-launcher/blob/main/CHANGELOG.md">
+    See what's changed over time
+  </Card>
+</CardGroup>
+
+## License
+
+By contributing to An Anime Game Launcher, you agree that your contributions will be licensed under the [GPL-3.0 License](https://github.com/an-anime-team/an-anime-game-launcher/blob/main/LICENSE).
+
+<Note>
+  Thank you for contributing to An Anime Game Launcher! Your efforts help keep the project alive and serve the community.
+</Note>

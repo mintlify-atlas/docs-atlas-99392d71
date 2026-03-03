@@ -1,0 +1,375 @@
+---
+title: NixOS Packaging
+description: Documentation for NixOS packaging with flake.nix for An Anime Game Launcher
+---
+
+## Overview
+
+NixOS support for An Anime Game Launcher is provided through a community-maintained NixOS module. The project includes a `flake.nix` for development and building.
+
+## Package Information
+
+<Note>
+  The NixOS module is community-maintained by Luxxy, an honorary member of the Discord server.
+</Note>
+
+| Property | Value |
+| --- | --- |
+| **Package Type** | NixOS Module |
+| **Maintainer** | Luxxy (honorary Discord member) |
+| **Module Repository** | [aagl-gtk-on-nix](https://github.com/ezKEa/aagl-gtk-on-nix) |
+| **Supported Distribution** | NixOS |
+| **Installation Wiki** | [NixOS Installation Guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-nixos-nixpkg) |
+
+## Flake Structure
+
+The project includes a `flake.nix` at the repository root for development and building:
+
+### Inputs
+
+```nix
+inputs = {
+  nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+  flake-utils.url = "github:numtide/flake-utils";
+
+  rust-overlay = {
+    url = "github:oxalica/rust-overlay";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+};
+```
+
+### Binary Cache Configuration
+
+The flake includes custom binary caches for faster builds:
+
+```nix
+nixConfig = {
+  extra-substituters = [
+    "https://cache.nixos.org"
+    "https://nix-community.cachix.org"
+    "https://an-anime-team.cachix.org"
+  ];
+
+  extra-trusted-public-keys = [
+    "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    "an-anime-team.cachix.org-1:nr9QXfYG5tDXIImqxjSXd1b6ymLfGCvviuV8xRPIKPM="
+  ];
+};
+```
+
+### Package Definition
+
+The default package builds the Rust application:
+
+```nix
+packages.default = pkgs.rustPlatform.buildRustPackage {
+  pname = config.package.name;      # "anime-game-launcher"
+  version = config.package.version;  # "3.18.0"
+
+  src = ./.;
+  cargoLock.lockFile = ./Cargo.lock;
+
+  doCheck = false;  # Disable tests during build
+
+  meta = with pkgs.lib; {
+    description = config.package.description;
+    homepage = config.package.homepage;
+    license = licenses.gpl3Only;
+
+    maintainers = [
+      {
+        name = "Nikita Podvirnyi";
+        email = "krypt0nn@vk.com";
+        matrix = "@krypt0nn:mozilla.org";
+        github = "krypt0nn";
+        githubId = 29639507;
+      }
+    ];
+  };
+
+  nativeBuildInputs = with pkgs; [
+    rust-bin.stable.latest.minimal
+    gcc
+  ];
+};
+```
+
+### Development Shell
+
+The flake provides a development shell with all required dependencies:
+
+```nix
+devShells.default = pkgs.mkShell {
+  nativeBuildInputs = with pkgs; [
+    (rust-bin.stable.latest.default.override {
+      extensions = [ "rust-src" ];
+    })
+
+    gcc
+    cmake
+    pkg-config
+
+    git
+    unzip
+    p7zip
+    libwebp
+  ];
+
+  buildInputs = with pkgs; [
+    gtk4
+    glib
+    gdk-pixbuf
+    gobject-introspection
+    libadwaita
+    protobuf
+  ];
+};
+```
+
+## Building with Nix Flakes
+
+### Prerequisites
+
+Enable flakes in your NixOS configuration:
+
+```nix
+# configuration.nix
+nix.settings.experimental-features = [ "nix-command" "flakes" ];
+```
+
+### Building the Package
+
+```bash
+# Build the package
+nix build github:an-anime-team/an-anime-game-launcher
+
+# Or from a local checkout
+git clone https://github.com/an-anime-team/an-anime-game-launcher.git
+cd an-anime-game-launcher
+nix build
+
+# Run the built package
+./result/bin/anime-game-launcher
+```
+
+### Using the Development Shell
+
+```bash
+# Enter the development shell
+nix develop
+
+# Now you have access to all build dependencies
+cargo build --release
+```
+
+### Running Directly
+
+```bash
+# Run without installing
+nix run github:an-anime-team/an-anime-game-launcher
+```
+
+## Installing via NixOS Module
+
+For users, the recommended installation method is through the `aagl-gtk-on-nix` module:
+
+### Adding to flake.nix
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    
+    aagl = {
+      url = "github:ezKEa/aagl-gtk-on-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, nixpkgs, aagl }: {
+    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        aagl.nixosModules.default
+        {
+          programs.anime-game-launcher.enable = true;
+        }
+      ];
+    };
+  };
+}
+```
+
+### Traditional Configuration
+
+For non-flake configurations:
+
+```nix
+# configuration.nix
+{ config, pkgs, ... }:
+
+let
+  aagl = import (builtins.fetchTarball "https://github.com/ezKEa/aagl-gtk-on-nix/archive/main.tar.gz");
+in
+{
+  imports = [ aagl.nixosModules.default ];
+  
+  programs.anime-game-launcher.enable = true;
+}
+```
+
+## Dependencies
+
+### Build Dependencies
+
+```nix
+nativeBuildInputs = [
+  rust-bin.stable.latest.minimal
+  gcc
+  cmake
+  pkg-config
+  git
+  unzip
+  p7zip
+  libwebp
+];
+```
+
+### Runtime Dependencies
+
+```nix
+buildInputs = [
+  gtk4                    # GTK4 UI framework
+  glib                    # GLib library
+  gdk-pixbuf             # Image loading
+  gobject-introspection  # GObject introspection
+  libadwaita             # GNOME Libadwaita
+  protobuf               # Protocol buffers
+];
+```
+
+## Binary Cache
+
+The An Anime Team provides a Cachix cache to speed up builds:
+
+### Setup Cachix
+
+```bash
+# Install cachix
+nix-env -iA cachix -f https://cachix.org/api/v1/install
+
+# Use the An Anime Team cache
+cachix use an-anime-team
+```
+
+### Manual Configuration
+
+Add to `configuration.nix`:
+
+```nix
+nix.settings = {
+  substituters = [
+    "https://cache.nixos.org"
+    "https://nix-community.cachix.org"
+    "https://an-anime-team.cachix.org"
+  ];
+  
+  trusted-public-keys = [
+    "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    "an-anime-team.cachix.org-1:nr9QXfYG5tDXIImqxjSXd1b6ymLfGCvviuV8xRPIKPM="
+  ];
+};
+```
+
+## Package Metadata
+
+Metadata is automatically imported from `Cargo.toml`:
+
+```nix
+config = pkgs.lib.importTOML ./Cargo.toml;
+
+# Used as:
+pname = config.package.name;              # "anime-game-launcher"
+version = config.package.version;          # "3.18.0"
+description = config.package.description;  # "Anime Game launcher"
+homepage = config.package.homepage;
+license = licenses.gpl3Only;
+```
+
+## Maintenance
+
+### Updating the Flake
+
+```bash
+# Update all inputs
+nix flake update
+
+# Update specific input
+nix flake lock --update-input nixpkgs
+
+# Build after updating
+nix build
+```
+
+### Testing Changes
+
+```bash
+# Build and check
+nix flake check
+
+# Run in a VM
+nixos-rebuild build-vm --flake .#your-hostname
+
+# Test the development shell
+nix develop --command cargo build
+```
+
+## Troubleshooting
+
+### Build Failures
+
+If builds fail:
+
+1. Update flake inputs: `nix flake update`
+2. Clear build cache: `nix-collect-garbage -d`
+3. Check Rust overlay version compatibility
+4. Verify GTK4 and libadwaita are available
+
+### Runtime Issues
+
+For runtime problems:
+
+1. Check library paths: `ldd result/bin/anime-game-launcher`
+2. Verify GTK4 schemas: `gsettings list-schemas`
+3. Test with verbose output: `G_MESSAGES_DEBUG=all ./result/bin/anime-game-launcher`
+
+### Flake Evaluation Errors
+
+```bash
+# Check flake syntax
+nix flake check
+
+# Show flake metadata
+nix flake metadata
+
+# Show flake outputs
+nix flake show
+```
+
+## Contact
+
+For NixOS-related issues:
+
+- Contact Luxxy in the [Discord server](https://discord.gg/ck37X6UWBp)
+- Open issues in [aagl-gtk-on-nix repository](https://github.com/ezKEa/aagl-gtk-on-nix)
+- Visit the [installation wiki](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-nixos-nixpkg)
+
+## Additional Resources
+
+- [Nix Flakes Manual](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html)
+- [NixOS Module System](https://nixos.org/manual/nixos/stable/index.html#sec-writing-modules)
+- [Rust in Nixpkgs](https://nixos.org/manual/nixpkgs/stable/#rust)
+- [Cachix Documentation](https://docs.cachix.org/)

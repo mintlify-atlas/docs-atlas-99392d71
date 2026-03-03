@@ -1,0 +1,466 @@
+---
+title: Voice Pack Management
+description: Complete guide to managing game voice language packs
+---
+
+An Anime Game Launcher allows you to install and manage multiple voice language packs for the game. This guide covers adding, removing, and updating voice packs.
+
+## Available Voice Packs
+
+The launcher supports four voice language packs:
+
+| Language | Locale Code | Approximate Size |
+| --- | --- | --- |
+| English | `en-us` | 2-4 GB |
+| Japanese | `ja-jp` | 2-4 GB |
+| Korean | `ko-kr` | 2-4 GB |
+| Chinese | `zh-cn` | 2-4 GB |
+
+<Note>
+Voice pack sizes vary by game version. The launcher fetches current sizes from the API automatically.
+</Note>
+
+## Managing Voice Packs
+
+### Accessing Voice Pack Settings
+
+<Steps>
+  <Step title="Open Settings">
+    Click the gear icon in the top-right corner of the launcher.
+  </Step>
+
+  <Step title="Navigate to General">
+    In the settings window, select **General** from the sidebar.
+  </Step>
+
+  <Step title="Find Game Voiceovers">
+    Scroll to the **Game Voiceovers** section.
+    
+    This expandable row shows:
+    - "Game Voiceovers" as the title
+    - "Select voice-over languages for the game" as subtitle
+    - List of all four available voice packs
+  </Step>
+</Steps>
+
+### Adding Voice Packs
+
+<Steps>
+  <Step title="Select Language">
+    In the Game Voiceovers section, find the language you want to add.
+
+    Each voice pack shows:
+    - Language name (English, Japanese, Korean, Chinese)
+    - Toggle switch (on/off)
+    - Download status if applicable
+  </Step>
+
+  <Step title="Enable Voice Pack">
+    Click the toggle switch to **ON** for the desired language.
+
+    **What happens:**
+    - Launcher adds the locale code to `config.game.voices`
+    - Configuration is saved immediately
+    - Voice pack is queued for download
+  </Step>
+
+  <Step title="Download Voice Pack">
+    The launcher detects the new voice pack needs installation.
+
+    **Download process:**
+    1. Main launcher state updates to show voice pack installation needed
+    2. Click the main action button to start download
+    3. Voice pack downloads to temp folder
+    4. Automatically extracts to game directory
+    5. Updates complete - voice pack ready to use
+
+    <Info>
+      Voice packs are treated as separate components and download independently. The process is defined in `src/ui/main/download_diff.rs`.
+    </Info>
+  </Step>
+</Steps>
+
+### Removing Voice Packs
+
+<Steps>
+  <Step title="Disable Voice Pack">
+    In Game Voiceovers settings, toggle **OFF** the voice pack you want to remove.
+
+    **What happens:**
+    - Launcher removes the locale code from `config.game.voices`
+    - Configuration saves immediately
+    - A confirmation dialog may appear
+  </Step>
+
+  <Step title="Delete Files (Optional)">
+    Disabling a voice pack removes it from the configuration but doesn't delete the files.
+
+    **To free up disk space:**
+    1. Voice pack files remain in the game directory
+    2. Use the game repair function to clean them up
+    3. Or manually delete the voice pack folder
+
+    **File locations:**
+    ```
+    {game_path}/GenshinImpact_Data/StreamingAssets/Audio/GeneratedSoundBanks/Windows/
+    ├── English(US)/
+    ├── Japanese/
+    ├── Korean/
+    └── Chinese/
+    ```
+
+    <Warning>
+      The launcher source at `src/ui/preferences/general/mod.rs:602-606` shows that voice pack deletion errors are logged but may not always show user notifications.
+    </Warning>
+  </Step>
+</Steps>
+
+## Voice Pack Updates
+
+Voice packs receive updates independently from the base game.
+
+### Update Detection
+
+**The launcher checks:**
+- Current voice pack version files
+- Remote API for latest versions
+- Compares all enabled voice packs
+
+**Update states:**
+- **Up to date** - No action needed
+- **Update available** - New version ready to download
+- **Not installed** - Voice pack enabled but files missing
+- **Outdated** - Newer game version available but voice pack hasn't updated yet
+
+### Updating Voice Packs
+
+<Steps>
+  <Step title="Update Notification">
+    When a voice pack update is available:
+    
+    - Main launcher button shows "Update" action
+    - Status indicates voice pack needs updating
+    - Version information displays in the UI
+
+    <Note>
+      If both game and voice pack updates are available, the launcher handles them together in a single download operation.
+    </Note>
+  </Step>
+
+  <Step title="Download Update">
+    Click the main action button to start.
+
+    **Update process:**
+    1. Downloads voice pack diff files
+    2. Stores in temp folder: `{temp}/updating-{voice_locale}/`
+    3. Unpacks archive
+    4. Applies patches
+    5. Updates voice pack directory
+    6. Verifies installation
+
+    The same update mechanism is used as the base game.
+  </Step>
+
+  <Step title="Update Complete">
+    When finished:
+    - Voice pack is current version
+    - Ready to use in-game
+    - Launcher state returns to "Launch"
+  </Step>
+</Steps>
+
+### Predownloading Voice Pack Updates
+
+Voice packs are included in predownload functionality.
+
+**When you predownload:**
+- All enabled voice pack updates download
+- Each creates a `.predownloadcomplete` marker
+- Predownload button shows total size (game + all voices)
+
+**Predownload size calculation:**
+```rust
+let mut size = game.downloaded_size().unwrap_or(0);
+
+for voice in voices {
+    size += voice.downloaded_size().unwrap_or(0);
+}
+```
+
+<Tip>
+The predownload button tooltip shows the combined size of the game and all voice pack updates at `src/ui/main/mod.rs:299-312`.
+</Tip>
+
+## Voice Pack Versions
+
+Voice pack versions are tracked separately but tied to game versions.
+
+### Version Storage
+
+**Hardcoded sizes:**
+The launcher includes hardcoded voice pack sizes for specific game versions as a fallback:
+
+- Version 5.7.0 (added in 3.14.3)
+- Version 5.6.0 (added in 3.14.1)
+- Version 5.5.0 (added in 3.13.1)
+- Version 5.1.0 (added in 3.13.0)
+- Version 4.8.0, 5.0.0 (added in 3.12.0)
+- Version 4.7.0 (added in 3.10.0)
+
+**API sizes:**
+For the current live version, the launcher fetches voice pack sizes from the API dynamically (added in 3.14.3).
+
+### Version Prediction
+
+The launcher uses version prediction for voice packs:
+
+**Prediction logic:**
+- Estimates voice pack sizes for new versions
+- Uses historical data and patterns
+- Falls back to API when available
+- Error margin increased in version 3.9.3
+
+<Info>
+Voiceover version prediction helps the launcher calculate required disk space before downloads begin.
+</Info>
+
+## Configuration
+
+### Voice Pack Settings
+
+Voice packs are configured in `config.json`:
+
+```json
+{
+  "game": {
+    "voices": [
+      "en-us",
+      "ja-jp"
+    ]
+  }
+}
+```
+
+**Locale codes:**
+- English: `"en-us"`
+- Japanese: `"ja-jp"`
+- Korean: `"ko-kr"`
+- Chinese: `"zh-cn"`
+
+### First-Run Selection
+
+During first-run setup, you select initial voice packs.
+
+**Default selection:**
+- English (en-us) is pre-selected
+- Other languages are opt-in
+
+**Selection code:**
+From `src/ui/first_run/select_voiceovers.rs:156-170`:
+
+```rust
+if self.english.state() {
+    config.game.voices.push(String::from("en-us"));
+}
+
+if self.japanese.state() {
+    config.game.voices.push(String::from("ja-jp"));
+}
+
+if self.korean.state() {
+    config.game.voices.push(String::from("ko-kr"));
+}
+
+if self.chinese.state() {
+    config.game.voices.push(String::from("zh-cn"));
+}
+```
+
+## Troubleshooting Voice Packs
+
+<AccordionGroup>
+  <Accordion title="Voice pack not downloading">
+    **Check these items:**
+    1. Verify voice pack is enabled in settings
+    2. Check `config.json` contains the locale code
+    3. Ensure sufficient disk space (4+ GB per voice pack)
+    4. Look for errors in the console output
+
+    **Force re-detection:**
+    1. Restart the launcher
+    2. Check for updates
+    3. Try toggling the voice pack off and on again
+  </Accordion>
+
+  <Accordion title="Voice pack update deleted during game update">
+    **Fixed in version 3.15.2**
+
+    **Previous issue:**
+    Updating the game after a preload would delete preloaded voice pack data.
+
+    **Solution:**
+    Update your launcher to 3.15.2 or later. The fix ensures voice pack preloaded data is preserved.
+  </Accordion>
+
+  <Accordion title="Voice pack shows as outdated">
+    **This happens when:**
+    - Game updated but voice pack API hasn't updated yet
+    - Publisher releases game before all voice packs
+    - Version file is corrupted
+
+    **What to do:**
+    1. Wait 24-48 hours for publisher to release voice pack update
+    2. Check official game announcements
+    3. You can still play - game uses default voice as fallback
+    4. Voice pack will update when available
+
+    <Note>
+      The launcher state `LauncherState::VoiceOutdated` indicates this situation and is normal during staggered releases.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Multiple voice packs vs. disk space">
+    **Each voice pack requires:**
+    - ~2-4 GB download
+    - ~2-4 GB installed
+    - Temp space during updates (~4-8 GB per pack)
+
+    **Managing space:**
+    1. Only enable voice packs you actually use
+    2. Disable unused languages in settings
+    3. Consider keeping only 1-2 active voice packs
+    4. Use game repair to clean up disabled packs
+
+    **Calculation:**
+    ```
+    Total required = (Number of packs × 4 GB) + temp space
+    Example: 2 packs = 8 GB installed + 16 GB temp = 24 GB
+    ```
+  </Accordion>
+
+  <Accordion title="Voice pack files not deleted after disabling">
+    **Expected behavior:**
+    Disabling a voice pack in settings does NOT automatically delete the files.
+
+    **Manual deletion:**
+    1. Navigate to game directory
+    2. Go to `GenshinImpact_Data/StreamingAssets/Audio/GeneratedSoundBanks/Windows/`
+    3. Delete the folder for the language:
+       - `English(US)/` for English
+       - `Japanese/` for Japanese
+       - `Korean/` for Korean  
+       - `Chinese/` for Chinese
+
+    **Safe deletion:**
+    Use the game repair function to safely clean up all unused files.
+
+    <Warning>
+      Only delete voice pack folders for languages you've disabled in settings. Deleting active voice packs will trigger re-download.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Wrong voice language in game">
+    **Voice pack vs. game language:**
+    - Voice packs control audio language
+    - In-game text language is separate
+    - Set in-game language in the game settings menu
+
+    **To change in-game voice:**
+    1. Launch the game
+    2. Open Settings menu
+    3. Go to Audio settings
+    4. Select voice language
+    5. Language must have corresponding voice pack installed
+
+    **If language not available in game:**
+    1. Make sure voice pack is enabled in launcher
+    2. Download/update the voice pack
+    3. Restart the game
+  </Accordion>
+</AccordionGroup>
+
+## Voice Pack Repair
+
+The game repair function includes voice pack verification.
+
+**When to repair:**
+- Voice pack not working in game
+- Corrupted audio files
+- Missing voice lines
+- After manual file deletion
+
+**Repair process:**
+<Steps>
+  <Step title="Open game menu">
+    Click the three-dot menu in the launcher.
+  </Step>
+
+  <Step title="Select Repair Game">
+    Choose the "Repair game installation" option.
+  </Step>
+
+  <Step title="Wait for verification">
+    The launcher:
+    - Scans all game files
+    - Checks voice pack integrity
+    - Downloads missing/corrupted files
+    - Verifies checksums
+
+    From `src/ui/main/repair_game.rs:56-57`:
+    ```rust
+    if let Ok(voiceovers) = game.get_voice_packages() {
+        for package in voiceovers {
+            // Verify each voice pack
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Repair complete">
+    All voice packs are verified and repaired.
+  </Step>
+</Steps>
+
+## Advanced Configuration
+
+### Component Index
+
+Voice pack metadata is stored in the components index.
+
+**Default location:**
+`{launcher_folder}/components/`
+
+**Custom index:**
+You can specify a custom components index in Settings > General > Components Index.
+
+<Note>
+For users in China, you may need to mirror the components repository to work around GitHub blocks (see README.md:70-74).
+</Note>
+
+### Temporary Folder
+
+Voice packs download to subdirectories in the temp folder.
+
+**Structure:**
+```
+{temp_folder}/
+├── updating-voice-en-us/
+│   ├── voice_pack.zip
+│   └── .predownloadcomplete
+├── updating-voice-ja-jp/
+└── updating-voice-ko-kr/
+```
+
+**Configuration:**
+Settings > General > Temp Folder
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Updating Games" icon="download" href="/guides/updating-games">
+    Learn about game updates and downloads
+  </Card>
+  <Card title="First Run Setup" icon="play" href="/guides/first-run-setup">
+    Initial voice pack selection
+  </Card>
+</CardGroup>

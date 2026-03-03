@@ -1,0 +1,210 @@
+---
+title: "Architecture"
+description: "Technical architecture, tech stack, and code structure of An Anime Game Launcher"
+---
+
+## Overview
+
+An Anime Game Launcher is a modern GTK4 application built with Rust, designed to provide a native Linux experience for managing and launching the game. The launcher follows a component-based architecture using Relm4, a GUI framework that brings reactive patterns to GTK development.
+
+## Tech Stack
+
+The launcher is built on a modern Rust-based technology stack:
+
+### Core Technologies
+
+<CardGroup cols={2}>
+
+<Card title="Rust" icon="rust">
+  Systems programming language ensuring memory safety and performance
+</Card>
+
+<Card title="Relm4" icon="layer-group">
+  Component-based GUI framework (v0.9.1) with reactive patterns
+</Card>
+
+<Card title="GTK4" icon="window-maximize">
+  Cross-platform toolkit (v4.16+) for building graphical interfaces
+</Card>
+
+<Card title="libadwaita" icon="palette">
+  GNOME's adaptive widget library (v1.5+) for modern styling
+</Card>
+
+</CardGroup>
+
+### Key Dependencies
+
+**anime-launcher-sdk** - The core launcher SDK providing game management functionality:
+```toml
+[dependencies.anime-launcher-sdk]
+git = "https://github.com/an-anime-team/anime-launcher-sdk"
+tag = "1.32.0"
+features = ["all", "genshin"]
+```
+
+**Supporting Libraries:**
+- `serde_json` - JSON serialization for configuration
+- `anyhow` - Error handling and propagation
+- `tracing` / `tracing-subscriber` - Structured logging
+- `fluent-templates` / `unic-langid` - Internationalization (i18n)
+- `rfd` - Native file dialogs with XDG portal support
+- `cached` - Function memoization for performance
+
+## Project Structure
+
+The launcher codebase is organized into logical modules:
+
+```
+src/
+├── main.rs                  # Application entry point and initialization
+├── background.rs            # Background image management
+├── i18n.rs                  # Internationalization utilities
+├── move_files.rs            # File migration utilities
+└── ui/                      # User interface components
+    ├── about.rs             # About dialog
+    ├── components/          # Reusable UI components
+    │   ├── group.rs         # Component grouping
+    │   ├── list.rs          # List widgets
+    │   ├── progress_bar.rs  # Progress indicators
+    │   └── version.rs       # Version display components
+    ├── first_run/           # First-run setup wizard
+    │   ├── main.rs          # Wizard coordinator
+    │   ├── default_paths.rs # Path configuration
+    │   ├── dependencies.rs  # Dependency checking
+    │   ├── download_components.rs
+    │   ├── select_voiceovers.rs
+    │   ├── welcome.rs       # Welcome screen
+    │   └── finish.rs        # Setup completion
+    ├── main/                # Main launcher window
+    │   ├── mod.rs           # Main window coordinator
+    │   ├── launch.rs        # Game launch logic
+    │   ├── download_diff.rs # Update/patch downloads
+    │   ├── download_wine.rs # Wine version management
+    │   ├── install_dxvk.rs  # DXVK installation
+    │   ├── create_prefix.rs # Wine prefix creation
+    │   ├── disable_telemetry.rs
+    │   ├── repair_game.rs   # Game repair functionality
+    │   └── migrate_folder.rs
+    └── preferences/         # Settings and preferences
+        ├── main.rs          # Preferences window
+        ├── general/         # General settings
+        │   ├── components.rs
+        │   └── mod.rs
+        ├── enhancements/    # Game enhancement settings
+        │   ├── game.rs      # Game-specific enhancements
+        │   ├── environment.rs
+        │   └── sandbox.rs   # Sandboxing options
+        └── gamescope.rs     # Gamescope configuration
+```
+
+## Architecture Patterns
+
+### Component-Based UI
+
+The launcher uses Relm4's component architecture, where each UI element is a self-contained component with its own state and message handling:
+
+```rust
+use relm4::prelude::*;
+
+// Components communicate via messages
+// State is managed reactively
+// UI updates automatically on state changes
+```
+
+### Configuration Management
+
+Configuration is handled through the anime-launcher-sdk with lazy initialization:
+
+```rust
+lazy_static::lazy_static! {
+    pub static ref CONFIG: Schema = Config::get()
+        .expect("Failed to load config");
+    
+    pub static ref LAUNCHER_FOLDER: PathBuf = launcher_dir()
+        .expect("Failed to get launcher folder");
+}
+```
+
+Standard paths:
+- Configuration: `$HOME/.local/share/anime-game-launcher/`
+- Cache: `$HOME/.cache/anime-game-launcher/`
+- Debug logs: `$HOME/.local/share/anime-game-launcher/debug.log`
+
+### Resource Management
+
+UI resources (icons, images, locales) are compiled into the binary using GLib's resource system:
+
+```rust
+// build.rs
+glib_build_tools::compile_resources(
+    &["assets"],
+    "assets/resources.xml",
+    "resources.gresource",
+);
+```
+
+Resources are loaded at runtime:
+```rust
+gtk::gio::resources_register_include!("resources.gresource")
+    .expect("Failed to register resources");
+```
+
+### Internationalization
+
+The launcher supports multiple languages using Fluent for localization. Language files are stored in `assets/locales/` and loaded based on system locale or user preference.
+
+## Application Flow
+
+### Startup Sequence
+
+1. **Initialization** - Load configuration, set up logging (src/main.rs:108)
+2. **First Run Check** - If `.first-run` file exists, show setup wizard
+3. **UI Language** - Set UI language based on config or system locale
+4. **Resource Loading** - Register GResource bundle and set icon theme
+5. **Main Window** - Launch either FirstRunApp or main App component
+
+### State Management
+
+The launcher uses `LauncherState` from the SDK to determine available actions:
+
+```rust
+use anime_launcher_sdk::genshin::states::LauncherState;
+
+// States include:
+// - Launch: Game ready to play
+// - Update: Update available
+// - Download: Game needs to be downloaded
+// - PredownloadAvailable: Pre-download available
+// - PatchAvailable: Game needs patching
+```
+
+## Build Configuration
+
+### Release Profile
+
+Optimized for size and performance:
+
+```toml
+[profile.release]
+strip = true          # Remove debug symbols
+lto = true            # Link-time optimization
+opt-level = "s"       # Optimize for size
+```
+
+### GTK Version Requirements
+
+- GTK4 v4.16 or higher
+- libadwaita v1.5 or higher
+
+## Platform Support
+
+The launcher is designed for Linux systems with:
+- X11 or Wayland display server
+- XDG Desktop Portal support for native file dialogs
+- Wine for running Windows games
+- DXVK for DirectX to Vulkan translation
+
+<Note>
+The launcher integrates with system-specific features like distribution detection (via `whatadistro`) and XDG standards for proper Linux desktop integration.
+</Note>

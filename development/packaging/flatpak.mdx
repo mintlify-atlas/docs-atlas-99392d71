@@ -1,0 +1,134 @@
+---
+title: Flatpak Packaging
+description: Documentation for maintaining and building the Flatpak package for An Anime Game Launcher
+---
+
+## Overview
+
+Flatpak is the officially supported package format for An Anime Game Launcher, maintained by the An Anime Team. It provides universal compatibility across Linux distributions including Fedora, Pop!_OS, SteamOS, and Steam Deck.
+
+## Official Package Information
+
+<Info>
+  The Flatpak package is officially supported by the An Anime Team and is the recommended installation method for most users.
+</Info>
+
+| Property | Value |
+| --- | --- |
+| **Maintainer** | Luna (available in Discord) |
+| **Source Repository** | [flatpak-builds](https://github.com/an-anime-team/flatpak-builds) |
+| **Supported Distributions** | Any (Fedora, Pop!_OS, SteamOS / Steam Deck, etc.) |
+| **Installation Wiki** | [Flatpak Installation Guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-any-distribution-flatpak) |
+
+## Package Metadata
+
+The Flatpak package uses metadata from `Cargo.toml`:
+
+```toml
+[package]
+name = "anime-game-launcher"
+version = "3.18.0"
+description = "Anime Game launcher"
+authors = ["Nikita Podvirnyi <krypt0nn@vk.com>"]
+homepage = "https://github.com/an-anime-team/an-anime-game-launcher"
+repository = "https://github.com/an-anime-team/an-anime-game-launcher"
+license = "GPL-3.0"
+```
+
+## Building the Flatpak
+
+### Prerequisites
+
+Ensure you have the Flatpak build tools installed:
+
+```bash
+# Fedora
+sudo dnf install flatpak-builder
+
+# Ubuntu/Debian
+sudo apt install flatpak-builder
+
+# Arch Linux
+sudo pacman -S flatpak-builder
+```
+
+### Build Process
+
+1. Clone the flatpak-builds repository:
+
+```bash
+git clone https://github.com/an-anime-team/flatpak-builds.git
+cd flatpak-builds
+```
+
+2. Build the Flatpak package:
+
+```bash
+flatpak-builder --user --install --force-clean build-dir moe.launcher.an-anime-game-launcher.yml
+```
+
+3. Run the built application:
+
+```bash
+flatpak run moe.launcher.an-anime-game-launcher
+```
+
+## Installation for Users
+
+Users can install the Flatpak from Flathub or the An Anime Team repository:
+
+```bash
+# Add the Flathub repository (if not already added)
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# Install the launcher
+flatpak install flathub moe.launcher.an-anime-game-launcher
+
+# Run the launcher
+flatpak run moe.launcher.an-anime-game-launcher
+```
+
+## Maintenance Guidelines
+
+### Updating the Package
+
+1. Monitor the main repository for new releases
+2. Update the manifest file with new version numbers and commit hashes
+3. Test the build locally before pushing
+4. Submit updates to the Flathub repository
+
+### Testing
+
+Before releasing updates:
+
+- Test on multiple distributions (Fedora, Ubuntu, Arch-based)
+- Verify game launching functionality
+- Check for any runtime dependency issues
+- Test on Steam Deck if possible
+
+## Troubleshooting
+
+### Build Failures
+
+If the build fails:
+
+1. Check that all dependencies are available
+2. Verify the manifest syntax is correct
+3. Ensure GTK4 and libadwaita versions match requirements
+4. Check the build logs for specific errors
+
+### Runtime Issues
+
+For runtime problems:
+
+1. Check Flatpak permissions: `flatpak info --show-permissions moe.launcher.an-anime-game-launcher`
+2. Verify the sandbox has access to necessary directories
+3. Check logs: `flatpak run --command=sh moe.launcher.an-anime-game-launcher`
+
+## Contact
+
+For Flatpak-specific issues or questions:
+
+- Contact Luna in the [Discord server](https://discord.gg/ck37X6UWBp)
+- Open issues in the [flatpak-builds repository](https://github.com/an-anime-team/flatpak-builds)
+- Visit the [wiki](https://github.com/an-anime-team/an-anime-game-launcher/wiki) for installation guides

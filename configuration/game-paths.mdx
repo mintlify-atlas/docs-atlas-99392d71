@@ -1,0 +1,421 @@
+---
+title: Game Paths
+description: Configure game installation paths and folder locations
+---
+
+The An Anime Game Launcher uses several directories to store game files, configurations, and cached data. Understanding these paths helps with troubleshooting, backups, and disk space management.
+
+## Default Directory Structure
+
+All launcher and game files are stored under the launcher folder:
+
+```
+~/.local/share/anime-game-launcher/
+```
+
+This location follows the XDG Base Directory specification for Linux applications.
+
+## Primary Directories
+
+### Launcher Folder
+
+<ParamField path="LAUNCHER_FOLDER" type="path" default="~/.local/share/anime-game-launcher">
+  Main launcher directory containing all launcher-specific files.
+  
+  This is the root directory for all launcher data, configurations, and game installations.
+</ParamField>
+
+**Contents:**
+```
+~/.local/share/anime-game-launcher/
+├── config.json          # Launcher configuration
+├── debug.log            # Debug and error logs
+├── background           # Launcher background image
+├── .first-run          # First-run marker file
+├── .keep-background    # Preserve background marker
+├── game/               # Game files directory
+└── components/         # Downloadable components
+```
+
+### Cache Folder
+
+<ParamField path="CACHE_FOLDER" type="path" default="~/.cache/anime-game-launcher">
+  Temporary cache directory for launcher.
+  
+  Contains processed images, temporary downloads, and other cache data. Safe to delete if launcher is closed.
+</ParamField>
+
+**Contents:**
+```
+~/.cache/anime-game-launcher/
+└── background          # Processed background image
+```
+
+## Game Directories
+
+### Game Installation
+
+<ParamField path="game.path" type="path">
+  Game installation directory.
+  
+  This path varies based on selected game edition (Global or China).
+</ParamField>
+
+**Default locations:**
+
+- **Global Edition**: `~/.local/share/anime-game-launcher/game/global/`
+- **China Edition**: `~/.local/share/anime-game-launcher/game/china/`
+
+**Game directory structure:**
+```
+~/.local/share/anime-game-launcher/game/global/
+├── GenshinImpact_Data/    # Game data files
+├── GenshinImpact.exe      # Game executable
+├── UnityPlayer.dll        # Unity engine
+├── pkg_version           # Version information
+└── Audio_*_pkg_version   # Voice package versions
+```
+
+### Wine Prefix
+
+<ParamField path="game.wine.prefix" type="path" default="~/.local/share/anime-game-launcher/game/wine-prefix">
+  Wine prefix (Windows environment) directory.
+  
+  Contains Wine's virtual Windows filesystem including registry, system files, and installed Windows components.
+</ParamField>
+
+**Wine prefix structure:**
+```
+~/.local/share/anime-game-launcher/game/wine-prefix/
+├── drive_c/              # Virtual C: drive
+│   ├── windows/         # Windows system files
+│   │   ├── system32/   # DXVK DLLs installed here
+│   │   └── syswow64/   # 32-bit system files
+│   ├── users/          # User profiles
+│   └── Program Files/  # Program installations
+├── dosdevices/          # Drive letter mappings
+└── user.reg            # User registry hive
+```
+
+<Note>
+The Wine prefix can become quite large (1-2 GB). Do not delete while game is running or launcher is open.
+</Note>
+
+### Wine Builds
+
+<ParamField path="game.wine.builds" type="path" default="~/.local/share/anime-game-launcher/game/wine">
+  Downloaded Wine versions storage.
+  
+  Each Wine build is extracted to a subdirectory named after the version.
+</ParamField>
+
+**Wine builds structure:**
+```
+~/.local/share/anime-game-launcher/game/wine/
+├── wine-ge-8-25/        # Wine-GE version
+├── lutris-7.2/          # Lutris Wine version
+└── proton-ge-8-32/      # Proton-GE version
+```
+
+**Average size**: 200-500 MB per Wine build
+
+### DXVK Builds
+
+<ParamField path="game.dxvk.builds" type="path" default="~/.local/share/anime-game-launcher/game/dxvk">
+  Downloaded DXVK versions storage.
+</ParamField>
+
+**DXVK builds structure:**
+```
+~/.local/share/anime-game-launcher/game/dxvk/
+├── dxvk-2.3/           # Official DXVK
+├── dxvk-async-2.2/     # DXVK with async patch
+└── dxvk-gplasync-2.3/ # GPL async variant
+```
+
+**Average size**: 5-10 MB per DXVK build
+
+## Components Directory
+
+<ParamField path="components.path" type="path" default="~/.local/share/anime-game-launcher/components">
+  Launcher components metadata and version lists.
+  
+  Contains JSON files describing available Wine and DXVK versions for download.
+</ParamField>
+
+**Components structure:**
+```
+~/.local/share/anime-game-launcher/components/
+├── wine/              # Wine metadata
+└── dxvk/              # DXVK metadata
+```
+
+## Session Storage
+
+<ParamField path="sessions" type="path" default="~/.local/share/anime-game-launcher/game/sessions">
+  Game session backups.
+  
+  Each session is a complete copy of the Wine prefix for different game configurations.
+</ParamField>
+
+**Sessions structure:**
+```
+~/.local/share/anime-game-launcher/game/sessions/
+├── default/           # Default session
+├── modded/            # Example modded game session
+└── testing/           # Example testing session
+```
+
+**Average size**: 1-2 GB per session
+
+<Note>
+Sessions duplicate the Wine prefix. Having many sessions can consume significant disk space.
+</Note>
+
+## Configuration Files
+
+### Main Configuration
+
+<ParamField path="config.json" type="file" default="~/.local/share/anime-game-launcher/config.json">
+  Primary launcher configuration file.
+  
+  JSON format containing all launcher settings, game paths, Wine configuration, and enhancement options.
+</ParamField>
+
+**Sample configuration structure:**
+```json
+{
+  "launcher": {
+    "language": "en-us",
+    "edition": "global",
+    "style": "modern",
+    "behavior": "nothing"
+  },
+  "game": {
+    "path": "/home/user/.local/share/anime-game-launcher/game",
+    "wine": {
+      "prefix": "/home/user/.local/share/anime-game-launcher/game/wine-prefix",
+      "selected": "wine-ge-8-25"
+    }
+  }
+}
+```
+
+### Debug Log
+
+<ParamField path="debug.log" type="file" default="~/.local/share/anime-game-launcher/debug.log">
+  Launcher debug and error log file.
+  
+  Contains timestamped log entries for troubleshooting launcher and game issues.
+</ParamField>
+
+**Log file location:**
+```
+~/.local/share/anime-game-launcher/debug.log
+```
+
+**Viewing logs:**
+```bash
+# View entire log
+cat ~/.local/share/anime-game-launcher/debug.log
+
+# View last 50 lines
+tail -n 50 ~/.local/share/anime-game-launcher/debug.log
+
+# Follow log in real-time
+tail -f ~/.local/share/anime-game-launcher/debug.log
+```
+
+## Disk Space Requirements
+
+### Minimum Space
+
+- **Game Installation**: ~40 GB (Global) / ~35 GB (China)
+- **Wine Prefix**: ~1.5 GB
+- **Wine Build**: ~300 MB (one version)
+- **DXVK**: ~10 MB
+- **Launcher**: ~100 MB
+
+**Total minimum**: ~42 GB
+
+### Recommended Space
+
+- **Game Installation**: ~45 GB (with voice packs)
+- **Wine Prefix**: ~2 GB
+- **Wine Builds**: ~1 GB (3-4 versions)
+- **DXVK Builds**: ~30 MB (3 versions)
+- **Sessions**: ~2 GB (1 extra session)
+- **Cache**: ~500 MB
+
+**Total recommended**: ~50 GB
+
+<Note>
+Game updates can require additional temporary space (up to 20 GB during major updates).
+</Note>
+
+## Cleaning Up Space
+
+### Safe to Delete
+
+**When launcher is closed:**
+
+```bash
+# Clear cache
+rm -rf ~/.cache/anime-game-launcher/*
+
+# Remove old Wine builds (keep current version)
+rm -rf ~/.local/share/anime-game-launcher/game/wine/wine-ge-old-version
+
+# Remove unused DXVK builds
+rm -rf ~/.local/share/anime-game-launcher/game/dxvk/dxvk-old-version
+
+# Remove old sessions
+rm -rf ~/.local/share/anime-game-launcher/game/sessions/unused-session
+```
+
+### Do Not Delete
+
+**While launcher or game is running:**
+
+- Wine prefix (`wine-prefix/`)
+- Current Wine build
+- Current DXVK build
+- Game installation (`game/global/` or `game/china/`)
+- `config.json`
+
+## Backup and Migration
+
+### Backing Up Game
+
+**Complete backup:**
+```bash
+tar -czf anime-game-backup.tar.gz ~/.local/share/anime-game-launcher
+```
+
+**Game files only:**
+```bash
+tar -czf game-only-backup.tar.gz ~/.local/share/anime-game-launcher/game/global
+```
+
+**Configuration only:**
+```bash
+cp ~/.local/share/anime-game-launcher/config.json ~/config-backup.json
+```
+
+### Restoring from Backup
+
+```bash
+# Extract complete backup
+tar -xzf anime-game-backup.tar.gz -C ~/
+
+# Restore configuration
+cp ~/config-backup.json ~/.local/share/anime-game-launcher/config.json
+```
+
+### Moving to Different Location
+
+To move the launcher to a different directory:
+
+1. Close launcher completely
+2. Move directory: `mv ~/.local/share/anime-game-launcher /new/location/`
+3. Create symlink: `ln -s /new/location/anime-game-launcher ~/.local/share/anime-game-launcher`
+4. Restart launcher
+
+<Note>
+Symlinking allows moving game to different partition (e.g., larger drive) while maintaining standard paths.
+</Note>
+
+## Permissions
+
+### Required Permissions
+
+All launcher directories should be owned by your user with read/write permissions:
+
+```bash
+# Check ownership
+ls -la ~/.local/share/anime-game-launcher
+
+# Fix permissions if needed
+chown -R $USER:$USER ~/.local/share/anime-game-launcher
+chmod -R u+rw ~/.local/share/anime-game-launcher
+```
+
+### Common Permission Issues
+
+**Error: Cannot write to prefix**
+```bash
+chmod -R u+rw ~/.local/share/anime-game-launcher/game/wine-prefix
+```
+
+**Error: Cannot update config**
+```bash
+chmod u+w ~/.local/share/anime-game-launcher/config.json
+```
+
+## Custom Paths
+
+While the launcher uses standard paths, you can customize locations through configuration:
+
+### Changing Game Path
+
+Edit `config.json`:
+
+```json
+{
+  "game": {
+    "path": "/custom/path/to/game"
+  }
+}
+```
+
+### Changing Wine Prefix
+
+```json
+{
+  "game": {
+    "wine": {
+      "prefix": "/custom/path/to/wine-prefix"
+    }
+  }
+}
+```
+
+<Note>
+Custom paths must have proper permissions and sufficient disk space. Absolute paths are required.
+</Note>
+
+## Troubleshooting Path Issues
+
+### Launcher Can't Find Game
+
+1. Verify game path in `config.json`
+2. Check directory exists: `ls -la ~/.local/share/anime-game-launcher/game/global`
+3. Verify `GenshinImpact.exe` exists in game directory
+4. Check file permissions
+
+### Wine Prefix Errors
+
+1. Verify prefix path in configuration
+2. Check prefix isn't corrupted:
+   ```bash
+   ls ~/.local/share/anime-game-launcher/game/wine-prefix/drive_c
+   ```
+3. Regenerate prefix by deleting and restarting launcher:
+   ```bash
+   rm -rf ~/.local/share/anime-game-launcher/game/wine-prefix
+   ```
+
+### Out of Disk Space
+
+1. Check available space:
+   ```bash
+   df -h ~/.local/share/anime-game-launcher
+   ```
+2. Clean up old Wine/DXVK versions
+3. Remove unused sessions
+4. Clear cache directory
+5. Consider moving to larger partition
+
+<Note>
+Regularly check disk space before game updates. Major updates can require 20+ GB temporary space.
+</Note>

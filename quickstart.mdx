@@ -1,80 +1,179 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with An Anime Game Launcher in just a few minutes
 ---
 
-## Get started in three steps
+# Quickstart guide
 
-Get your documentation site running locally and make your first customization.
+This guide will help you install and run An Anime Game Launcher for the first time.
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Install the launcher">
+    Choose your installation method based on your Linux distribution.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    <Tabs>
+      <Tab title="Flatpak (Recommended)">
+        Flatpak works on any Linux distribution and is officially supported by the An Anime Team.
 
-### Step 2: Deploy your changes
+        ```bash
+        # Add the Flathub repository if not already added
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+        # Install the launcher
+        flatpak install moe.launcher.an-anime-game-launcher
+        ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+        <Note>
+          Flatpak is the recommended installation method as it works on Fedora, Pop!_OS, SteamOS, Steam Deck, and most other distributions.
+        </Note>
+      </Tab>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+      <Tab title="Arch Linux">
+        Install from the AUR using your preferred AUR helper.
 
-### Step 3: Go live
+        ```bash
+        # Using yay
+        yay -S an-anime-game-launcher-bin
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+        # Or using paru
+        paru -S an-anime-game-launcher-bin
+        ```
+      </Tab>
+
+      <Tab title="Fedora / openSUSE">
+        Install from the RPM repository.
+
+        ```bash
+        # Add the repository and install
+        # See installation page for detailed RPM instructions
+        ```
+
+        <Warning>
+          RPM packages are often outdated. Flatpak is recommended instead.
+        </Warning>
+      </Tab>
+    </Tabs>
+
+    For other distributions, see the [installation guide](/installation).
+  </Step>
+
+  <Step title="Launch the application">
+    Run the launcher from your application menu or use the command line.
+
+    <Tabs>
+      <Tab title="Flatpak">
+        ```bash
+        flatpak run moe.launcher.an-anime-game-launcher
+        ```
+      </Tab>
+
+      <Tab title="Native package">
+        ```bash
+        anime-game-launcher
+        ```
+      </Tab>
+    </Tabs>
+
+    On first run, the launcher will:
+    - Create the launcher folder at `~/.local/share/anime-game-launcher`
+    - Create the cache folder at `~/.cache/anime-game-launcher`
+    - Auto-detect and set your system language
+    - Display the first-run setup wizard
+  </Step>
+
+  <Step title="Complete the first-run setup">
+    The first-run wizard will guide you through:
+
+    1. **Game installation path** - Choose where to install the game
+    2. **Wine runner selection** - Select or download a Wine compatibility layer
+    3. **DXVK configuration** - Set up DirectX to Vulkan translation
+    4. **Language preferences** - Confirm or change the launcher language
+
+    <Note>
+      The launcher automatically detects your system language and sets it as the default. You can change this in settings later.
+    </Note>
+  </Step>
+
+  <Step title="Download the game">
+    After completing the setup:
+
+    1. The launcher will check for game updates
+    2. If the game is not installed, you'll see a download button
+    3. Click to start downloading the game files
+    4. Wait for the download and installation to complete
+
+    <Note>
+      The launcher uses a temporary directory for downloads. You can configure this location in settings.
+    </Note>
+  </Step>
+
+  <Step title="Launch the game">
+    Once the game is installed and ready:
+
+    1. Click the "Launch" button in the main window
+    2. The game will start using the configured Wine runner
+    3. Enjoy your game!
+
+    You can also launch the game directly from the command line:
+
+    ```bash
+    # Launch via launcher UI
+    anime-game-launcher --run-game
+
+    # Force launch game (skip preload checks)
+    anime-game-launcher --just-run-game
+    ```
+  </Step>
+</Steps>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Configure settings" icon="gear">
+    Customize Wine runners, DXVK versions, FPS unlocker, and visual appearance
+  </Card>
+  <Card title="Manage sessions" icon="users">
+    Set up multiple game accounts using the session switching feature
+  </Card>
+  <Card title="Enable FPS unlocker" icon="gauge-high">
+    Unlock frame rates for better gaming performance
+  </Card>
+  <Card title="Join Discord" icon="discord" href="https://discord.gg/ck37X6UWBp">
+    Get support and stay updated with the community
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="First-run wizard doesn't appear">
+    The launcher creates a `.first-run` file in `~/.local/share/anime-game-launcher/`. If this file exists, the wizard will appear. Delete your launcher folder to trigger first-run again:
+
+    ```bash
+    rm -rf ~/.local/share/anime-game-launcher
+    ```
+  </Accordion>
+
+  <Accordion title="Game won't launch">
+    Enable debug logging to diagnose the issue:
+
+    ```bash
+    anime-game-launcher --debug
+    ```
+
+    Check the debug log at `~/.local/share/anime-game-launcher/debug.log`
+  </Accordion>
+
+  <Accordion title="Language not detected correctly">
+    The launcher auto-detects language on first run. To change it:
+    1. Open launcher settings
+    2. Navigate to language preferences
+    3. Select your preferred language
+    
+    Or manually edit `~/.local/share/anime-game-launcher/config.json`
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  If you encounter issues, check the debug log file at `~/.local/share/anime-game-launcher/debug.log` for detailed error messages.
+</Warning>

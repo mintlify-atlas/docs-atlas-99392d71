@@ -1,0 +1,261 @@
+---
+title: First-Run Setup
+description: Complete guide to the initial setup wizard for An Anime Game Launcher
+---
+
+When you first launch An Anime Game Launcher, you'll be guided through a setup wizard to configure your installation. This guide walks through each step of the process.
+
+## Overview
+
+The first-run wizard consists of several sequential steps:
+
+1. Welcome screen
+2. System dependencies check
+3. Default paths configuration
+4. Voice pack selection
+5. Component downloads (Wine & DXVK)
+6. Completion
+
+## Setup Process
+
+<Steps>
+  <Step title="Welcome Screen">
+    The launcher presents a welcome message and checks for required dependencies.
+
+    **What happens automatically:**
+    - Checks for `git`, `dwebp`, and `7z`/`7za` packages
+    - If all dependencies are found, skips to Default Paths
+    - If dependencies are missing, shows the Dependencies page
+
+    Click **Continue** to proceed.
+
+    <Note>
+      The launcher uses `is_available()` checks in `src/ui/first_run/welcome.rs:82-85` to detect installed packages.
+    </Note>
+  </Step>
+
+  <Step title="System Dependencies (if needed)">
+    If required packages are missing, the launcher displays installation commands for your distribution.
+
+    **Supported package managers:**
+    - **Arch Linux (pacman)**: `sudo pacman -Syu git p7zip libwebp-utils`
+    - **Debian/Ubuntu (apt)**: `sudo apt install git p7zip-full webp`
+    - **Fedora (dnf)**: `sudo dnf install git p7zip libwebp-tools`
+
+    **For other distributions:**
+    The launcher shows a list of required packages:
+    - `git`
+    - `p7zip`
+    - `libwebp`
+
+    **After installation:**
+    1. Install the packages using your package manager
+    2. Click **Check** to verify installation
+    3. The launcher validates each dependency before continuing
+
+    <Warning>
+      You cannot proceed without installing all required dependencies. The launcher will show a toast notification for any missing package.
+    </Warning>
+  </Step>
+
+  <Step title="Default Paths Configuration">
+    Configure where the launcher stores its files and game data.
+
+    **Primary folder:**
+    - **Launcher Folder**: Root directory for all launcher files (default: `~/.local/share/anime-game-launcher`)
+
+    **Show All Folders option:**
+    Toggle this switch to configure advanced paths:
+    - **Runners Folder**: Wine builds storage
+    - **DXVK Folder**: DXVK builds storage
+    - **Wine Prefix Folder**: Windows compatibility prefix
+    - **Global Game Installation**: Game files for global version
+    - **Chinese Game Installation**: Game files for Chinese version
+    - **FPS Unlocker Folder**: FPS unlocker tool location
+    - **Components Index**: Components repository path
+    - **Temp Folder**: Temporary download files
+
+    **Changing the launcher folder:**
+    When you change the launcher folder, all subfolders automatically update to be inside it.
+
+    <Tip>
+      Most users only need to configure the Launcher Folder. The advanced options are for custom setups or if you want to separate components across different drives.
+    </Tip>
+
+    Click **Continue** to save your paths.
+  </Step>
+
+  <Step title="Voice Pack Selection">
+    Choose which voice language packs to download with the game.
+
+    **Available languages:**
+    - **English** (en-us) - Pre-selected by default
+    - **Japanese** (ja-jp)
+    - **Korean** (ko-kr)
+    - **Chinese** (zh-cn)
+
+    **Voice pack details:**
+    - Each voice pack is approximately 2-4 GB in size
+    - You can change voice packs later in Settings > General > Game Voiceovers
+    - Multiple packs can be installed simultaneously
+    - Only selected packs will be downloaded and updated
+
+    The launcher saves your selections to `config.game.voices` in the configuration file.
+
+    <Note>
+      Voice pack sizes are defined in the source at `src/ui/first_run/select_voiceovers.rs:156-170` and stored as locale codes (e.g., "en-us", "ja-jp").
+    </Note>
+  </Step>
+
+  <Step title="Download Components">
+    Download and configure Wine and DXVK for running the game.
+
+    **Wine Selection:**
+    - The launcher shows the 4 latest versions from the 4 first available Wine groups
+    - Recommended versions are pre-selected
+    - Wine builds are stored in the Runners folder
+
+    **DXVK Selection:**
+    - Shows the 4 latest versions from the 4 first available DXVK groups
+    - DXVK provides DirectX to Vulkan translation for better performance
+
+    **Download process:**
+    The launcher automatically performs these steps:
+
+    1. **Download Wine** - Downloads selected Wine build (~100-300 MB)
+    2. **Create Prefix** - Initializes Wine prefix for game compatibility
+    3. **Download DXVK** - Downloads selected DXVK build (~5-15 MB)
+    4. **Apply DXVK** - Installs DXVK into the Wine prefix
+
+    Each step shows a spinner while processing and a checkmark when complete.
+
+    **Progress tracking:**
+    - A progress bar at the bottom shows download progress
+    - Downloads are stored in the temp folder before extraction
+    - The launcher skips downloading if components are already present
+
+    <Info>
+      The download process is defined in `src/ui/first_run/download_components.rs`. Wine and DXVK are essential for running Windows games on Linux.
+    </Info>
+  </Step>
+
+  <Step title="Completion">
+    Setup is complete! The launcher shows a success message with two options:
+
+    - **Restart**: Closes and reopens the launcher (recommended)
+    - **Exit**: Closes the launcher
+
+    **What was configured:**
+    - All configuration saved to `config.json`
+    - Wine and DXVK installed and ready
+    - Voice pack preferences saved
+    - First-run flag cleared
+
+    After restart, the launcher opens to the main window where you can:
+    - Download the game
+    - Configure additional settings
+    - Launch the game once installed
+
+    <Success>
+      The first-run file is removed at `src/ui/first_run/download_components.rs:597` after all steps complete successfully.
+    </Success>
+  </Step>
+</Steps>
+
+## Skipping Components
+
+The launcher intelligently skips already-completed steps:
+
+- **Wine already downloaded**: Skips to prefix creation
+- **DXVK already downloaded**: Skips to DXVK application
+- **Dependencies installed**: Skips dependency page
+
+## Troubleshooting First-Run
+
+<AccordionGroup>
+  <Accordion title="Dependencies not detected after installation">
+    **Solution:**
+    1. Make sure packages are installed system-wide, not in a container
+    2. Verify packages are in your PATH: `which git`, `which 7z`, `which dwebp`
+    3. Restart your terminal or log out and back in
+    4. Click **Check** again in the dependencies page
+  </Accordion>
+
+  <Accordion title="Wine download fails">
+    **Common causes:**
+    - Network connectivity issues
+    - Insufficient disk space
+    - Firewall blocking downloads
+
+    **Solutions:**
+    - Check your internet connection
+    - Verify free space in your Runners folder
+    - Try a different Wine version from the dropdown
+    - Check the console output for detailed error messages
+  </Accordion>
+
+  <Accordion title="Prefix creation hangs">
+    **This usually happens when:**
+    - Wine is initializing for the first time
+    - System resources are limited
+
+    **Solutions:**
+    - Wait a few minutes - first-time prefix creation can take 2-5 minutes
+    - Check system resources (RAM, CPU)
+    - If stuck for >10 minutes, restart the launcher and try again
+  </Accordion>
+
+  <Accordion title="Want to change paths after setup">
+    **You can modify paths later:**
+    1. Open Settings (gear icon)
+    2. Navigate to the relevant section:
+       - Game paths: Settings > General
+       - Wine/DXVK paths: Settings > Enhancements
+    3. Change the paths as needed
+    4. Restart the launcher for changes to take effect
+
+    <Warning>
+      Changing paths after installation may require moving existing files manually.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Related Configuration
+
+All first-run settings are stored in `config.json`:
+
+```json
+{
+  "game": {
+    "path": {
+      "global": "/path/to/game",
+      "china": "/path/to/game"
+    },
+    "voices": ["en-us", "ja-jp"],
+    "wine": {
+      "prefix": "/path/to/prefix",
+      "builds": "/path/to/runners",
+      "selected": "wine-ge-version"
+    },
+    "dxvk": {
+      "builds": "/path/to/dxvks"
+    }
+  },
+  "launcher": {
+    "temp": "/path/to/temp"
+  }
+}
+```
+
+## Next Steps
+
+After completing first-run setup:
+
+<CardGroup cols={2}>
+  <Card title="Updating Games" icon="download" href="/guides/updating-games">
+    Learn how to download and update the game
+  </Card>
+  <Card title="Voice Packs" icon="language" href="/guides/voice-packs">
+    Manage voice language packs
+  </Card>
+</CardGroup>

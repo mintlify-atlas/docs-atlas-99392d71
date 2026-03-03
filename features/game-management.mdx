@@ -1,0 +1,291 @@
+---
+title: Game Management
+description: Install, update, and manage game versions in An Anime Game Launcher
+---
+
+## Overview
+
+An Anime Game Launcher provides comprehensive game management features including installation, updates, predownloading, version tracking, and repair functionality. The launcher automatically detects your game state and guides you through necessary actions.
+
+## Launcher States
+
+The launcher uses a state-based system to determine what actions are available. Each state corresponds to a specific condition of your game installation.
+
+<AccordionGroup>
+  <Accordion title="Launch - Ready to Play">
+    The game is fully installed and up-to-date. You can launch the game immediately.
+    
+    **Button:** "Launch" (green, play icon)
+  </Accordion>
+
+  <Accordion title="GameNotInstalled - Fresh Installation">
+    The game is not installed. The launcher will download and install the complete game files.
+    
+    **Button:** "Download" (download icon)
+    
+    **File Location:** Downloads to the path configured in `config.game.path.for_edition(config.launcher.edition)`
+  </Accordion>
+
+  <Accordion title="GameUpdateAvailable - Update Required">
+    A game update is available. The launcher will download and apply the update.
+    
+    **Button:** "Update" or "Resume" (if partial download exists)
+    
+    **Resume Support:** If a file matching the update already exists in the temp folder, the button will show "Resume" instead of "Update"
+  </Accordion>
+
+  <Accordion title="GameOutdated - Version Too Old">
+    Your installed game version is too old and cannot be updated incrementally.
+    
+    **Button:** Disabled with warning styling
+    
+    **Tooltip:** Displays version outdated message
+    
+    **Action Required:** Manual game reinstallation
+  </Accordion>
+
+  <Accordion title="PredownloadAvailable - Pre-patch Available">
+    A pre-download for the next game update is available. You can download it in advance.
+    
+    **Button:** Separate predownload button (save icon)
+    
+    **Tooltip:** Shows version and download size for predownload
+    
+    **Implementation:** Files are downloaded to `temp/updating-{matching_field}/.predownloadcomplete`
+  </Accordion>
+</AccordionGroup>
+
+## Game Installation
+
+### Initial Installation
+
+<Steps>
+  <Step title="Configure Game Path">
+    Set your desired game installation path in the launcher preferences before downloading.
+    
+    The path is stored at `config.game.path.for_edition(config.launcher.edition)`
+  </Step>
+
+  <Step title="Start Download">
+    When in `GameNotInstalled` state, click the "Download" button.
+    
+    The launcher will:
+    - Download game files using the configured thread count (`config.launcher.sophon.threads`)
+    - Show progress with downloading status and progress bar
+    - Automatically unpack and install files to the game directory
+  </Step>
+
+  <Step title="Wait for Completion">
+    The download uses multi-threaded downloading for optimal speed.
+    
+    **Progress Updates:** Real-time progress tracking via `ProgressBarMsg::UpdateFromState(state)`
+    
+    **Error Handling:** Download and unpacking errors are displayed with detailed error messages
+  </Step>
+
+  <Step title="Automatic State Update">
+    After successful installation, the launcher automatically updates its state and checks for next required actions (Wine prefix, DXVK, etc.)
+  </Step>
+</Steps>
+
+## Game Updates
+
+### Standard Updates
+
+When a game update is available:
+
+1. The launcher detects the version difference via `GAME.try_get_diff()`
+2. The state changes to `GameUpdateAvailable(diff)` with the version diff information
+3. Clicking "Update" triggers `download_diff::download_diff()` which:
+   - Downloads the update files to the temp folder if specified
+   - Applies the diff using `diff.install_to(game_path, threads, callback)`
+   - Updates launcher state upon completion
+
+<Note>
+If the download is interrupted, the launcher will show "Resume" instead of "Update" if partial files exist in the temp folder.
+</Note>
+
+### Predownload System
+
+The predownload feature allows downloading updates before they're officially released.
+
+**How it works:**
+
+- A separate predownload button appears when `PredownloadAvailable` state is active
+- Shows the future version and total download size (game + all voice packs)
+- Downloads to temporary folder: `temp/updating-{matching_field}/`
+- Creates `.predownloadcomplete` marker file when finished
+- Button changes to success styling (green) when predownload is complete
+
+**Code Implementation:**
+
+```rust
+let mut diffs: Vec<VersionDiff> = vec![game];
+diffs.append(&mut voices);
+
+for mut diff in diffs {
+    diff = diff.with_temp_folder(tmp.clone());
+    diff.download_to(&tmp, progress_callback);
+}
+```
+
+<Info>
+Predownloaded files are automatically used when the update officially releases, saving time on update day.
+</Info>
+
+## Version Management
+
+### Version Detection
+
+The launcher performs version checking during initialization:
+
+```rust
+sender.input(AppMsg::SetGameDiff(match GAME.try_get_diff() {
+    Ok(diff) => Some(diff),
+    Err(err) => {
+        // Error handling
+        None
+    }
+}));
+```
+
+### Voice Pack Management
+
+Voice packs are treated as separate installable components:
+
+- `VoiceNotInstalled(diff)` - Voice pack not installed for selected language
+- `VoiceUpdateAvailable(diff)` - Voice pack update available
+- `VoiceOutdated(diff)` - Voice pack version too old
+
+**Multi-voice Support:**
+
+When predownloading, all installed voice packs are included in the download size calculation:
+
+```rust
+let mut size = game.downloaded_size().unwrap_or(0);
+for voice in voices {
+    size += voice.downloaded_size().unwrap_or(0);
+}
+```
+
+## Game Repair
+
+The repair function is accessible via the application menu.
+
+**Access:** Menu → Repair Game
+
+**Implementation:** Located in `src/ui/main/repair_game.rs`
+
+**What it does:**
+- Verifies game file integrity
+- Redownloads corrupted files
+- Fixes installation issues
+
+<Warning>
+Repair operations may take significant time depending on the number of corrupted files detected.
+</Warning>
+
+## File Locations
+
+### Game Files
+
+- **Installation Path:** `config.game.path.for_edition(config.launcher.edition)`
+- **Data Folder:** `{game_path}/{edition.data_folder()}`
+- **Web Caches:** `{data_folder}/webCaches/` (used for wish URL extraction)
+
+### Download Cache
+
+- **Temp Folder:** `config.launcher.temp` or `std::env::temp_dir()`
+- **Update Files:** `{temp}/updating-{matching_field}/`
+- **Predownload Marker:** `{temp}/updating-{matching_field}/.predownloadcomplete`
+
+## Download Settings
+
+### Thread Configuration
+
+Downloads use multi-threading for improved performance:
+
+**Setting:** `config.launcher.sophon.threads`
+
+**Usage:** `diff.install_to(game_path, config.launcher.sophon.threads as usize, callback)`
+
+### Temp Folder Configuration
+
+Configure a custom temporary folder for downloads:
+
+```rust
+if let Some(temp) = config.launcher.temp {
+    diff = diff.with_temp_folder(temp);
+}
+```
+
+<Info>
+Using a dedicated temp folder on a fast drive (SSD) can significantly improve download and installation speeds.
+</Info>
+
+## Error Handling
+
+The launcher provides detailed error messages for common issues:
+
+### Download Errors
+
+```rust
+DiffUpdate::InstallerUpdate(InstallerUpdate::DownloadingError(err)) => {
+    sender.input(AppMsg::Toast {
+        title: tr!("downloading-failed"),
+        description: Some(err.to_string())
+    });
+}
+```
+
+### Unpacking Errors
+
+```rust
+DiffUpdate::InstallerUpdate(InstallerUpdate::UnpackingError(err)) => {
+    sender.input(AppMsg::Toast {
+        title: tr!("unpacking-failed"),
+        description: Some(err.clone())
+    });
+}
+```
+
+## Kill Game Process
+
+If the game becomes unresponsive, you can force-close it:
+
+**Button:** "Kill Game Process" (red, appears when game is running)
+
+**Implementation:**
+```rust
+std::process::Command::new("pkill")
+    .arg("-f") // full text search
+    .arg("-i") // case-insensitive
+    .arg("GenshinImpact|YuanShen|fpsunlock\\.exe")
+    .spawn();
+```
+
+<Warning>
+The kill button has a 3-second cooldown after each use to prevent accidental spam.
+</Warning>
+
+## State Update Flow
+
+The launcher automatically updates its state after major operations:
+
+<Steps>
+  <Step title="Trigger State Update">
+    `AppMsg::UpdateLauncherState` is sent after downloads, installations, or configuration changes
+  </Step>
+
+  <Step title="Check Game Status">
+    `LauncherState::get_from_config(updater)` analyzes current installation
+  </Step>
+
+  <Step title="Update UI">
+    The launcher button text, icon, and styling update based on the new state
+  </Step>
+
+  <Step title="Auto-perform Actions">
+    If `perform_on_download_needed` is true and a download state is detected, the download starts automatically (used for chained voice pack installations)
+  </Step>
+</Steps>

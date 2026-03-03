@@ -1,0 +1,226 @@
+---
+title: AUR Package Maintenance
+description: Documentation for maintaining the AUR package for An Anime Game Launcher
+---
+
+## Overview
+
+The AUR (Arch User Repository) package is a community-supported distribution method for An Anime Game Launcher on Arch Linux and Arch-based distributions like Manjaro and EndeavourOS.
+
+## Package Information
+
+<Note>
+  The AUR package is community-maintained by an active member of the An Anime Team community.
+</Note>
+
+| Property | Value |
+| --- | --- |
+| **Package Name** | `an-anime-game-launcher-bin` |
+| **Maintainer** | xstra (honorary Discord member) |
+| **AUR Page** | [an-anime-game-launcher-bin](https://aur.archlinux.org/packages/an-anime-game-launcher-bin) |
+| **Supported Distributions** | Arch Linux, Manjaro, EndeavourOS |
+| **Installation Wiki** | [AUR Installation Guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-arch-linux-aur) |
+
+## Installation for Users
+
+### Using an AUR Helper
+
+#### With yay
+
+```bash
+yay -S an-anime-game-launcher-bin
+```
+
+#### With paru
+
+```bash
+paru -S an-anime-game-launcher-bin
+```
+
+### Manual Installation
+
+```bash
+# Clone the AUR package
+git clone https://aur.archlinux.org/an-anime-game-launcher-bin.git
+cd an-anime-game-launcher-bin
+
+# Review the PKGBUILD
+less PKGBUILD
+
+# Build and install
+makepkg -si
+```
+
+## PKGBUILD Structure
+
+The AUR package is a binary package (`-bin`) that downloads pre-built releases from GitHub. A typical PKGBUILD structure includes:
+
+```bash
+# Maintainer information
+pkgname=an-anime-game-launcher-bin
+pkgver=3.18.0
+pkgrel=1
+pkgdesc="Anime Game launcher"
+arch=('x86_64')
+url="https://github.com/an-anime-team/an-anime-game-launcher"
+license=('GPL3')
+
+# Dependencies from Cargo.toml
+depends=(
+  'gtk4'
+  'libadwaita'
+  'git'
+  'unzip'
+  'p7zip'
+  'libwebp'
+)
+
+# Source from GitHub releases
+source=("$pkgname-$pkgver.tar.gz::$url/releases/download/$pkgver/anime-game-launcher-$pkgver.tar.gz")
+
+package() {
+  # Install binary and resources
+  install -Dm755 "$srcdir/anime-game-launcher" "$pkgdir/usr/bin/anime-game-launcher"
+  # Install desktop file, icons, etc.
+}
+```
+
+## Maintenance Guidelines
+
+### Updating the Package
+
+When a new version is released:
+
+1. Update `pkgver` to match the new release version
+2. Reset `pkgrel` to 1
+3. Update checksums:
+   ```bash
+   updpkgsums
+   ```
+4. Test the build locally:
+   ```bash
+   makepkg -sf
+   ```
+5. Install and test the package:
+   ```bash
+   makepkg -si
+   ```
+6. Commit and push to AUR:
+   ```bash
+   git add PKGBUILD .SRCINFO
+   git commit -m "Update to version X.Y.Z"
+   git push
+   ```
+
+### Generating .SRCINFO
+
+Always update `.SRCINFO` when modifying the PKGBUILD:
+
+```bash
+makepkg --printsrcinfo > .SRCINFO
+```
+
+## Dependencies
+
+Based on the project's requirements, the package depends on:
+
+### Runtime Dependencies
+
+```bash
+depends=(
+  'gtk4'           # GTK4 UI framework (v4.16+)
+  'libadwaita'     # GNOME Libadwaita (v1.5+)
+  'git'            # Version control operations
+  'unzip'          # Archive extraction
+  'p7zip'          # 7z archive support
+  'libwebp'        # WebP image support
+)
+```
+
+### Optional Dependencies
+
+```bash
+optdepends=(
+  'mangohud: For FPS and performance monitoring'
+  'gamemode: For game performance optimization'
+)
+```
+
+## Package Metadata
+
+The package uses information from `Cargo.toml`:
+
+```toml
+name = "anime-game-launcher"
+version = "3.18.0"
+description = "Anime Game launcher"
+authors = ["Nikita Podvirnyi <krypt0nn@vk.com>"]
+homepage = "https://github.com/an-anime-team/an-anime-game-launcher"
+license = "GPL-3.0"
+```
+
+## Testing
+
+Before pushing updates:
+
+1. **Build test**: Verify the package builds without errors
+   ```bash
+   makepkg -sf
+   ```
+
+2. **Installation test**: Install and verify files are placed correctly
+   ```bash
+   makepkg -si
+   pacman -Ql an-anime-game-launcher-bin
+   ```
+
+3. **Functionality test**: Launch the application and verify basic operations
+   ```bash
+   anime-game-launcher
+   ```
+
+4. **Removal test**: Ensure clean uninstallation
+   ```bash
+   sudo pacman -Rns an-anime-game-launcher-bin
+   ```
+
+## Troubleshooting
+
+### Checksum Mismatches
+
+If checksums don't match:
+
+```bash
+updpkgsums  # Update checksums automatically
+```
+
+### Build Failures
+
+Common issues:
+
+- Missing dependencies: Check `depends` and `makedepends` arrays
+- Incorrect version: Verify the release exists on GitHub
+- Source URL changes: Update the source URL format if GitHub changes
+
+### Orphaned Packages
+
+If the maintainer becomes inactive:
+
+1. Contact the current maintainer through AUR comments
+2. Wait 2 weeks for a response
+3. Request orphan status through AUR
+4. Adopt the package if interested
+
+## Contact
+
+For AUR package issues:
+
+- Contact xstra in the [Discord server](https://discord.gg/ck37X6UWBp)
+- Comment on the [AUR package page](https://aur.archlinux.org/packages/an-anime-game-launcher-bin)
+- Visit the [installation wiki](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-arch-linux-aur)
+
+## Additional Resources
+
+- [AUR Submission Guidelines](https://wiki.archlinux.org/title/AUR_submission_guidelines)
+- [PKGBUILD Reference](https://wiki.archlinux.org/title/PKGBUILD)
+- [Arch Package Guidelines](https://wiki.archlinux.org/title/Arch_package_guidelines)

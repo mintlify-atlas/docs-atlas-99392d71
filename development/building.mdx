@@ -1,0 +1,365 @@
+---
+title: "Building from Source"
+description: "Compile An Anime Game Launcher from source code for development and testing"
+---
+
+## Prerequisites
+
+Before building the launcher, ensure you have the following dependencies installed on your system.
+
+### System Requirements
+
+<AccordionGroup>
+  <Accordion title="Rust Toolchain" icon="rust">
+    **Required:** Rust stable toolchain (edition 2021)
+    
+    Install via rustup:
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    ```
+    
+    Verify installation:
+    ```bash
+    rustc --version
+    cargo --version
+    ```
+  </Accordion>
+
+  <Accordion title="Build Tools" icon="hammer">
+    **Required build dependencies:**
+    
+    - `gcc` - C compiler
+    - `cmake` - Build system generator
+    - `pkg-config` - Dependency metadata tool
+    - `git` - Version control
+    
+    **Debian/Ubuntu:**
+    ```bash
+    sudo apt install build-essential cmake pkg-config git
+    ```
+    
+    **Fedora:**
+    ```bash
+    sudo dnf install gcc gcc-c++ cmake pkg-config git
+    ```
+    
+    **Arch Linux:**
+    ```bash
+    sudo pacman -S base-devel cmake pkg-config git
+    ```
+  </Accordion>
+
+  <Accordion title="GTK4 Development Libraries" icon="window-maximize">
+    **Required GTK dependencies:**
+    
+    - `gtk4` (>= 4.16)
+    - `libadwaita` (>= 1.5)
+    - `glib2`
+    - `gdk-pixbuf2`
+    - `gobject-introspection`
+    
+    **Debian/Ubuntu:**
+    ```bash
+    sudo apt install libgtk-4-dev libadwaita-1-dev libglib2.0-dev \
+                     libgdk-pixbuf2.0-dev gobject-introspection
+    ```
+    
+    **Fedora:**
+    ```bash
+    sudo dnf install gtk4-devel libadwaita-devel glib2-devel \
+                     gdk-pixbuf2-devel gobject-introspection-devel
+    ```
+    
+    **Arch Linux:**
+    ```bash
+    sudo pacman -S gtk4 libadwaita glib2 gdk-pixbuf2 gobject-introspection
+    ```
+  </Accordion>
+
+  <Accordion title="Additional Dependencies" icon="boxes-stacked">
+    **Optional but recommended:**
+    
+    - `unzip` - Archive extraction
+    - `p7zip` - 7z archive support
+    - `libwebp` - WebP image support
+    - `protobuf` - Protocol buffers
+    
+    **Install on most distributions:**
+    ```bash
+    # Debian/Ubuntu
+    sudo apt install unzip p7zip-full libwebp-dev protobuf-compiler
+    
+    # Fedora
+    sudo dnf install unzip p7zip libwebp-devel protobuf-compiler
+    
+    # Arch Linux
+    sudo pacman -S unzip p7zip libwebp protobuf
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Building the Launcher
+
+### Standard Build
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/an-anime-team/an-anime-game-launcher.git
+    cd an-anime-game-launcher
+    ```
+  </Step>
+
+  <Step title="Build with Cargo">
+    **Debug build** (faster compilation, includes debug symbols):
+    ```bash
+    cargo build
+    ```
+    
+    **Release build** (optimized for size and performance):
+    ```bash
+    cargo build --release
+    ```
+    
+    <Info>
+    Release builds are significantly smaller and faster due to:
+    - Link-time optimization (LTO)
+    - Symbol stripping
+    - Size optimization (`opt-level = "s"`)
+    </Info>
+  </Step>
+
+  <Step title="Run the launcher">
+    **Debug build:**
+    ```bash
+    ./target/debug/anime-game-launcher
+    ```
+    
+    **Release build:**
+    ```bash
+    ./target/release/anime-game-launcher
+    ```
+  </Step>
+</Steps>
+
+### Development Build
+
+For active development with faster iteration:
+
+```bash
+# Run without building binary
+cargo run
+
+# Run with debug output
+cargo run -- --debug
+
+# Run with specific session
+cargo run -- --session "session-name"
+
+# Check code without building
+cargo check
+
+# Run tests
+cargo test
+```
+
+### Build with Nix
+
+If you use NixOS or Nix package manager, a flake is provided:
+
+<Steps>
+  <Step title="Enter development shell">
+    The flake provides a complete development environment:
+    ```bash
+    nix develop
+    ```
+    
+    This automatically provides:
+    - Rust toolchain with `rust-src` extension
+    - All GTK4 and libadwaita dependencies
+    - Build tools (gcc, cmake, pkg-config)
+    - Development utilities (git, unzip, p7zip, libwebp)
+  </Step>
+
+  <Step title="Build the package">
+    Build using Nix flake:
+    ```bash
+    nix build
+    ```
+    
+    The built binary will be in `./result/bin/`
+  </Step>
+
+  <Step title="Run directly">
+    Run without installing:
+    ```bash
+    nix run
+    ```
+  </Step>
+</Steps>
+
+<Note>
+The Nix flake uses binary caches from:
+- `cache.nixos.org` - Official NixOS cache
+- `nix-community.cachix.org` - Community packages
+- `an-anime-team.cachix.org` - Project-specific cache
+</Note>
+
+## Command Line Arguments
+
+The launcher supports several CLI arguments:
+
+```bash
+# Enable debug output
+./anime-game-launcher --debug
+
+# Run the game directly (if ready to launch)
+./anime-game-launcher --run-game
+
+# Force run game even if updates available
+./anime-game-launcher --just-run-game
+
+# Disable verbose tracing in stdout
+./anime-game-launcher --no-verbose-tracing
+
+# Switch to specific session
+./anime-game-launcher --session "session-name"
+```
+
+## Build Artifacts
+
+After building, you'll find:
+
+```
+target/
+├── debug/
+│   ├── anime-game-launcher      # Debug binary
+│   └── build/                    # Build artifacts
+└── release/
+    ├── anime-game-launcher      # Optimized binary
+    └── build/                    # Build artifacts
+```
+
+### Binary Size Comparison
+
+| Build Type | Typical Size | Optimization |
+|------------|--------------|-------------|
+| Debug | ~50-100 MB | None, includes symbols |
+| Release | ~15-25 MB | LTO + strip + size opt |
+
+## Development with anime-launcher-sdk
+
+The launcher depends on `anime-launcher-sdk`. For SDK development:
+
+<Steps>
+  <Step title="Clone the SDK">
+    ```bash
+    git clone https://github.com/an-anime-team/anime-launcher-sdk.git
+    cd ../anime-launcher-sdk
+    ```
+  </Step>
+
+  <Step title="Modify Cargo.toml">
+    In the launcher's `Cargo.toml`, uncomment the path dependency:
+    
+    ```toml
+    [dependencies.anime-launcher-sdk]
+    # git = "https://github.com/an-anime-team/anime-launcher-sdk"
+    # tag = "1.32.0"
+    path = "../anime-launcher-sdk"  # Uncomment this line
+    features = ["all", "genshin"]
+    ```
+  </Step>
+
+  <Step title="Build with local SDK">
+    ```bash
+    cd ../an-anime-game-launcher
+    cargo build
+    ```
+    
+    <Warning>
+    Remember to revert to the git dependency before committing changes.
+    </Warning>
+  </Step>
+</Steps>
+
+## Resource Compilation
+
+GTK resources are automatically compiled during build via `build.rs`:
+
+```rust
+// build.rs compiles UI resources
+glib_build_tools::compile_resources(
+    &["assets"],
+    "assets/resources.xml",
+    "resources.gresource",
+);
+```
+
+Resources include:
+- UI definition files
+- Icons and images
+- Localization files (`assets/locales/`)
+- Application metadata
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="GTK/libadwaita version errors">
+    Ensure you have GTK4 >= 4.16 and libadwaita >= 1.5:
+    
+    ```bash
+    pkg-config --modversion gtk4
+    pkg-config --modversion libadwaita-1
+    ```
+    
+    If versions are too old, you may need to use a newer distribution version or build from source.
+  </Accordion>
+
+  <Accordion title="Missing glib-build-tools">
+    If you see errors about `glib-build-tools`:
+    
+    ```bash
+    cargo clean
+    cargo build
+    ```
+    
+    The build dependency should be automatically fetched.
+  </Accordion>
+
+  <Accordion title="Linker errors">
+    If you encounter linker errors about missing symbols:
+    
+    1. Verify all GTK development packages are installed
+    2. Check `pkg-config` can find them:
+       ```bash
+       pkg-config --libs gtk4 libadwaita-1
+       ```
+    3. Try a clean rebuild:
+       ```bash
+       cargo clean && cargo build
+       ```
+  </Accordion>
+
+  <Accordion title="Resource compilation errors">
+    If `glib-compile-resources` fails:
+    
+    1. Ensure `glib2` development tools are installed
+    2. Check `assets/resources.xml` is valid
+    3. Verify all referenced files exist in `assets/`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Once you have successfully built the launcher:
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the codebase structure and design patterns
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Learn how to contribute to the project
+  </Card>
+</CardGroup>

@@ -1,0 +1,294 @@
+---
+title: Installation
+description: Complete installation instructions for An Anime Game Launcher across all supported Linux distributions
+---
+
+# Installation
+
+An Anime Game Launcher is available for multiple Linux distributions through various package formats. The launcher developer relies on community maintainers for most packages.
+
+<Note>
+  Installation instructions may become outdated due to limited maintenance resources. You can help by keeping the documentation up to date.
+</Note>
+
+## Officially supported packages
+
+These packages are officially supported by the An Anime Team with guaranteed functionality.
+
+### Flatpak (Recommended)
+
+<Card title="Best for: Any distribution" icon="box">
+  Works on Fedora, Pop!\_OS, SteamOS, Steam Deck, and most other Linux distributions
+</Card>
+
+**Maintainer:** Luna (available in Discord)
+
+<Steps>
+  <Step title="Add Flathub repository">
+    If you haven't already added Flathub:
+
+    ```bash
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    ```
+  </Step>
+
+  <Step title="Install the launcher">
+    ```bash
+    flatpak install moe.launcher.an-anime-game-launcher
+    ```
+  </Step>
+
+  <Step title="Run the launcher">
+    ```bash
+    flatpak run moe.launcher.an-anime-game-launcher
+    ```
+
+    Or launch from your application menu.
+  </Step>
+</Steps>
+
+**Resources:**
+- [Flatpak builds repository](https://github.com/an-anime-team/flatpak-builds)
+- [Wiki guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-any-distribution-flatpak)
+
+### RPM packages
+
+<Card title="Best for: Fedora, openSUSE" icon="box">
+  Available through openSUSE Build Service
+</Card>
+
+**Maintainer:** Maroxy (Discord admin)
+
+<Warning>
+  RPM packages are often outdated. Flatpak is strongly recommended instead.
+</Warning>
+
+<Steps>
+  <Step title="Add repository">
+    Follow the instructions for your distribution on the [AAGL OBS repository](https://build.opensuse.org/repositories/home:Maroxy:AAT-Apps/AAGL).
+  </Step>
+
+  <Step title="Install the package">
+    ```bash
+    # Fedora
+    sudo dnf install an-anime-game-launcher
+
+    # openSUSE
+    sudo zypper install an-anime-game-launcher
+    ```
+  </Step>
+</Steps>
+
+**Resources:**
+- [OBS repository](https://build.opensuse.org/repositories/home:Maroxy:AAT-Apps/AAGL)
+- [Wiki guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-fedora-rpm)
+
+## Community supported packages
+
+These packages are maintained by active community members with regular contact with the An Anime Team.
+
+### Arch Linux (AUR)
+
+<Card title="Best for: Arch Linux, Manjaro, EndeavourOS" icon="box">
+  Available through the Arch User Repository
+</Card>
+
+**Maintainer:** xstra (honorary Discord member)
+
+<Steps>
+  <Step title="Install using AUR helper">
+    <Tabs>
+      <Tab title="yay">
+        ```bash
+        yay -S an-anime-game-launcher-bin
+        ```
+      </Tab>
+
+      <Tab title="paru">
+        ```bash
+        paru -S an-anime-game-launcher-bin
+        ```
+      </Tab>
+
+      <Tab title="Manual installation">
+        ```bash
+        git clone https://aur.archlinux.org/an-anime-game-launcher-bin.git
+        cd an-anime-game-launcher-bin
+        makepkg -si
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Run the launcher">
+    ```bash
+    anime-game-launcher
+    ```
+  </Step>
+</Steps>
+
+**Resources:**
+- [AUR package](https://aur.archlinux.org/packages/an-anime-game-launcher-bin)
+- [Wiki guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-arch-linux-aur)
+
+### NixOS
+
+<Card title="Best for: NixOS" icon="box">
+  Available as a NixOS module
+</Card>
+
+**Maintainer:** Luxxy (honorary Discord member)
+
+<Steps>
+  <Step title="Add the module">
+    Add to your NixOS configuration:
+
+    ```nix
+    # Import the module
+    imports = [
+      (builtins.fetchTarball {
+        url = "https://github.com/ezKEa/aagl-gtk-on-nix/archive/main.tar.gz";
+      })
+    ];
+    ```
+  </Step>
+
+  <Step title="Enable the launcher">
+    ```nix
+    programs.anime-game-launcher.enable = true;
+    ```
+  </Step>
+
+  <Step title="Rebuild your system">
+    ```bash
+    sudo nixos-rebuild switch
+    ```
+  </Step>
+</Steps>
+
+**Resources:**
+- [aagl-gtk-on-nix repository](https://github.com/ezKEa/aagl-gtk-on-nix)
+- [Wiki guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#-nixos-nixpkg)
+
+### Gentoo
+
+<Card title="Best for: Gentoo" icon="box">
+  Available through custom overlay
+</Card>
+
+**Maintainer:** johnthecoolingfan (honorary Discord member)
+
+<Steps>
+  <Step title="Add the overlay">
+    ```bash
+    # Using eselect repository
+    eselect repository add aagl-ebuilds git https://github.com/an-anime-team/gentoo-ebuilds
+
+    # Or using layman
+    layman -a aagl-ebuilds
+    ```
+  </Step>
+
+  <Step title="Sync and install">
+    ```bash
+    emaint sync -r aagl-ebuilds
+    emerge --ask games-util/an-anime-game-launcher
+    ```
+  </Step>
+</Steps>
+
+**Resources:**
+- [Gentoo ebuilds repository](https://github.com/an-anime-team/gentoo-ebuilds)
+- [Wiki guide](https://github.com/an-anime-team/an-anime-game-launcher/wiki/Installation#gentoo)
+
+## Third-party packages
+
+<Warning>
+  These packages are maintained by third parties with minimal or no contact with the An Anime Team. The team does not verify or support these packages.
+</Warning>
+
+### Ubuntu / Linux Mint / Pop!_OS (DEB)
+
+<Card title="Best for: Ubuntu-based distributions" icon="box">
+  Available through PPA
+</Card>
+
+```bash
+# Add the PPA
+sudo add-apt-repository ppa:thundergemios10/an-anime-game-launcher
+sudo apt update
+
+# Install
+sudo apt install an-anime-game-launcher
+```
+
+**Resources:**
+- [Launchpad PPA](https://launchpad.net/~thundergemios10/+archive/ubuntu/an-anime-game-launcher)
+
+### Pacstall (Ubuntu)
+
+<Card title="Best for: Ubuntu users" icon="box">
+  Alternative package manager for Ubuntu
+</Card>
+
+```bash
+# Install using Pacstall
+pacstall -I an-anime-game-launcher-bin
+```
+
+**Resources:**
+- [Pacstall package](https://pacstall.dev/packages/an-anime-game-launcher-bin)
+
+## Chinese version support
+
+The launcher automatically enables Chinese version support if your system language is set to `zh_cn`. You can also manually change the game edition in launcher settings.
+
+<Note>
+  GitHub is blocked in China, which affects component downloads. You'll need to create a custom components index repository with mirrored links and update the repository URL in `~/.local/share/anime-game-launcher/config.json`.
+</Note>
+
+<Steps>
+  <Step title="Fork the components repository">
+    Create your own copy of the [components repository](https://github.com/an-anime-team/components).
+  </Step>
+
+  <Step title="Update download links">
+    Replace all GitHub release URLs with accessible mirror links in your fork.
+  </Step>
+
+  <Step title="Configure the launcher">
+    Update the components index URL in your launcher's `config.json` file to point to your custom repository.
+  </Step>
+</Steps>
+
+For assistance, contact the developers on Discord or via email.
+
+## Post-installation
+
+After installation, the launcher will:
+
+1. Create configuration directory at `~/.local/share/anime-game-launcher`
+2. Create cache directory at `~/.cache/anime-game-launcher`
+3. Auto-detect your system language
+4. Display the first-run setup wizard
+
+<Card title="Next: Quickstart guide" icon="rocket" href="/quickstart">
+  Learn how to set up and launch the game for the first time
+</Card>
+
+## Getting help
+
+<CardGroup cols={2}>
+  <Card title="Discord community" icon="discord" href="https://discord.gg/ck37X6UWBp">
+    Ask questions and get support from the community and developers
+  </Card>
+  <Card title="GitHub Wiki" icon="book" href="https://github.com/an-anime-team/an-anime-game-launcher/wiki">
+    Browse FAQ, troubleshooting guides, and documentation
+  </Card>
+  <Card title="GitHub Issues" icon="bug" href="https://github.com/an-anime-team/an-anime-game-launcher/issues">
+    Report bugs and track known issues
+  </Card>
+  <Card title="Releases" icon="tag" href="https://github.com/an-anime-team/an-anime-game-launcher/releases">
+    Download latest releases and view changelog
+  </Card>
+</CardGroup>

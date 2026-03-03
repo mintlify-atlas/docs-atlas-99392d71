@@ -1,0 +1,828 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for An Anime Game Launcher
+---
+
+This guide covers common problems you may encounter with An Anime Game Launcher and their solutions.
+
+## Installation Issues
+
+<AccordionGroup>
+  <Accordion title="Dependencies not found">
+    **Required packages:**
+    - `git` - Version control and repository access
+    - `p7zip` or `7z` - Archive extraction
+    - `libwebp` / `dwebp` - Image processing
+
+    **Check installation:**
+    ```bash
+    which git
+    which 7z || which 7za
+    which dwebp
+    ```
+
+    **Install missing packages:**
+
+    **Arch Linux:**
+    ```bash
+    sudo pacman -Syu git p7zip libwebp-utils
+    ```
+
+    **Debian/Ubuntu:**
+    ```bash
+    sudo apt install git p7zip-full webp
+    ```
+
+    **Fedora:**
+    ```bash
+    sudo dnf install git p7zip libwebp-tools
+    ```
+
+    <Note>
+      The package name for libwebp on Arch was fixed in version 3.18.0 (previously showed incorrect package name).
+    </Note>
+  </Accordion>
+
+  <Accordion title="Launcher won't start">
+    **Check these items:**
+
+    1. **Verify installation**
+       - Flatpak: `flatpak list | grep anime`
+       - AUR: `pacman -Q | grep anime-game`
+       - Ensure package is actually installed
+
+    2. **Check permissions**
+       ```bash
+       ls -la ~/.local/share/anime-game-launcher/
+       ```
+       Launcher needs read/write access to its folder
+
+    3. **Review logs**
+       - Flatpak: `flatpak run moe.launcher.an-anime-game-launcher`
+       - Terminal output shows startup errors
+
+    4. **Dependencies**
+       - GTK4 libraries installed
+       - libadwaita available
+       - Graphics drivers up to date
+
+    <Warning>
+      If using Flatpak, make sure you have the required Flatpak runtimes installed: `flatpak install flathub org.gnome.Platform//46`
+    </Warning>
+  </Accordion>
+
+  <Accordion title="First-run wizard doesn't appear">
+    **This happens when:**
+    - First-run marker file already exists
+    - Configuration file present from previous installation
+
+    **Force first-run:**
+    ```bash
+    rm ~/.local/share/anime-game-launcher/config.json
+    rm ~/.local/share/anime-game-launcher/.first-run
+    ```
+
+    **Then restart the launcher.**
+
+    <Info>
+      The first-run file is removed at `src/ui/first_run/download_components.rs:597` after successful setup.
+    </Info>
+  </Accordion>
+</AccordionGroup>
+
+## Download Problems
+
+<AccordionGroup>
+  <Accordion title="Downloads fail or timeout">
+    **Common causes:**
+    - Network connectivity issues
+    - Slow/unstable connection
+    - Server-side problems
+    - Firewall blocking connections
+
+    **Solutions:**
+
+    1. **Increase timeout**
+       ```bash
+       export LAUNCHER_REQUESTS_TIMEOUT=16000
+       ```
+       Default is 8000ms (8 seconds), increased from 3000ms in version 3.7.0.
+
+    2. **Reduce Sophon threads**
+       - Settings > General > Sophon Threads
+       - Lower to 2-4 threads on slow connections
+       - Higher threads = more concurrent downloads = more bandwidth
+
+    3. **Check network**
+       ```bash
+       ping google.com
+       curl -I https://github.com
+       ```
+
+    4. **Proxy support**
+       Set environment variables:
+       ```bash
+       export http_proxy=http://proxy:port
+       export https_proxy=http://proxy:port
+       ```
+       Proxy support added in version 3.7.0.
+
+    <Tip>
+      The launcher uses `minreq` for HTTP requests with configurable timeout via `LAUNCHER_REQUESTS_TIMEOUT` environment variable.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Download stuck at 100%">
+    **Fixed in version 3.15.3**
+
+    **If on older version:**
+    1. Update launcher to 3.15.3 or later
+    2. Wait 5-10 minutes (may be verifying)
+    3. Check console output for errors
+
+    **If on current version:**
+    - Download is likely applying patches
+    - Check progress bar status text
+    - Monitor CPU usage (should be active)
+    - Wait for "Removing outdated files" stage
+
+    <Warning>
+      Do not force-kill the launcher during "Applying patches" or "Removing outdated files" stages. This can corrupt your installation.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Download restarts in endless loop">
+    **Fixed in version 3.15.5**
+
+    **Symptoms:**
+    - Reaches 100%
+    - Immediately restarts from 0%
+    - Repeats continuously
+
+    **Solution:**
+    Update to launcher version 3.15.5 or later.
+
+    **Workaround for older versions:**
+    1. Clear temp folder downloads
+       ```bash
+       rm -rf ~/.local/share/anime-game-launcher/temp/updating-*
+       ```
+    2. Restart launcher
+    3. Begin download again
+  </Accordion>
+
+  <Accordion title="Insufficient disk space">
+    **Space requirements:**
+    - Game download: ~20-40 GB
+    - Unpacked game: ~40-80 GB
+    - Temp folder: ~20-40 GB during updates
+    - Voice packs: ~2-4 GB each
+
+    **Total recommendation:**
+    Minimum 100 GB free space
+
+    **Check free space:**
+    ```bash
+    df -h ~/.local/share/anime-game-launcher
+    df -h /tmp
+    ```
+
+    **Free up space:**
+    1. Remove old Wine builds (Settings > Enhancements)
+    2. Remove old DXVK builds
+    3. Clear temp folder
+    4. Disable unused voice packs
+    5. Use game repair to clean up
+
+    <Info>
+      The launcher performs free space checks (added in version 3.9.2) with symlink resolution before starting downloads.
+    </Info>
+  </Accordion>
+
+  <Accordion title="Segmented archive extraction fails">
+    **Support added in version 3.9.1**
+
+    **Requirements:**
+    - 7z or 7za binary installed
+    - Sufficient disk space (2x archive size)
+    - All segments downloaded
+
+    **Verify 7z:**
+    ```bash
+    which 7z || which 7za
+    7z --help
+    ```
+
+    **Check temp folder:**
+    Look for all archive parts:
+    ```bash
+    ls -lh ~/.local/share/anime-game-launcher/temp/updating-*/
+    ```
+
+    Should see: `archive.zip.001`, `archive.zip.002`, etc.
+
+    **If extraction fails:**
+    1. Verify all parts are present
+    2. Check file permissions
+    3. Manually test extraction:
+       ```bash
+       7z x archive.zip.001
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Game Launch Issues
+
+<AccordionGroup>
+  <Accordion title="Game won't start">
+    **Check launcher state:**
+
+    1. **Wine not installed**
+       - Launcher shows "Download Wine" button
+       - Go to Settings > Enhancements
+       - Select and download a Wine version
+
+    2. **Prefix not created**
+       - Launcher shows "Create Prefix" button
+       - Click it to initialize Wine prefix
+       - Wait for completion (2-5 minutes)
+
+    3. **DXVK not installed**
+       - Launcher shows "Install DXVK" button
+       - Download and apply DXVK
+       - Required for DirectX to Vulkan translation
+
+    4. **Game not installed**
+       - Launcher shows "Download" or "Install"
+       - Download the game first
+
+    <Note>
+      The launcher performs a check for broken DXVK installations (added in version 3.17.0).
+    </Note>
+  </Accordion>
+
+  <Accordion title="FPS Unlocker not working">
+    **Fixed in version 3.17.0**
+
+    **Check these:**
+
+    1. **FPS Unlocker enabled**
+       - Settings > Enhancements > FPS Unlocker
+       - Toggle should be ON
+
+    2. **Correct runner compatibility**
+       - Version 3.17.0 fixed compatibility with some runners
+       - Update launcher if on older version
+
+    3. **FPS Unlocker version**
+       - Updated to 1.2.1 in version 3.15.5
+       - BAT script updated for latest Wine behavior
+
+    4. **Custom FPS Unlocker**
+       - Version 3.9.4 replaced FPS unlocker with custom implementation
+       - Should work more reliably
+
+    **Logs:**
+    Check game logs for FPS unlocker messages:
+    ```bash
+    tail -f ~/.local/share/anime-game-launcher/game.log
+    ```
+  </Accordion>
+
+  <Accordion title="Game crashes on launch">
+    **Common causes:**
+
+    1. **Telemetry not disabled**
+       - Some game versions require telemetry to be disabled
+       - Launcher should prompt automatically
+       - Manually: Menu > Disable Telemetry
+
+    2. **Wrong Wine version**
+       - Try different Wine version
+       - Wine-GE recommended for best compatibility
+       - Settings > Enhancements > Wine Version
+
+    3. **Missing DXVK**
+       - Reinstall DXVK
+       - Settings > Enhancements > Reinstall DXVK
+
+    4. **Corrupted prefix**
+       - Backup and recreate Wine prefix
+       - Settings > Wine > Prefix
+
+    5. **Game files corrupted**
+       - Use game repair function
+       - Menu > Repair Game Installation
+
+    **Check logs:**
+    ```bash
+    # Game output
+    cat ~/.local/share/anime-game-launcher/game.log
+    
+    # Wine errors
+    tail -f ~/.wine/drive_c/users/$(whoami)/Temp/wine-debug.log
+    ```
+
+    <Info>
+      Game logs are written to `game.log` (added in version 3.10.2). Size is controlled by `LAUNCHER_GAME_LOG_FILE_LIMIT` environment variable.
+    </Info>
+  </Accordion>
+
+  <Accordion title="Game runs but no audio">
+    **Solutions:**
+
+    1. **Check voice pack installed**
+       - Settings > General > Game Voiceovers
+       - Enable desired language
+       - Download voice pack
+
+    2. **PulseAudio/PipeWire**
+       ```bash
+       # Check audio system
+       pactl info
+       
+       # Test audio
+       speaker-test -c 2
+       ```
+
+    3. **Wine audio configuration**
+       - Settings > Wine Tools > Wine Configuration
+       - Audio tab > Test Sound
+       - Select correct audio driver
+
+    4. **Sandbox issue**
+       - Game sandboxing may break audio
+       - Settings > Sandbox > Disable sandbox
+       - Audio issues with sandbox noted in version 3.6.0
+
+    <Warning>
+      Sandboxed game running has known audio issues (see changelog 3.6.0: "Fixed sandboxed game running (sounds are broken for now)").
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Game runs on wrong display (multi-monitor)">
+    **Gamescope solutions:**
+
+    1. **Enable Gamescope**
+       - Settings > Gamescope > Enable Gamescope
+       - Select output display
+       - Configure resolution
+
+    2. **Force grab cursor**
+       - Settings > Gamescope > Force grab cursor
+       - Added in version 3.9.5
+       - Keeps game on correct display
+
+    **Without Gamescope:**
+    - Move game window manually
+    - Configure Wine virtual desktop
+    - Use window manager rules
+
+    <Tip>
+      Gamescope settings were reworked in version 3.12.0 with improved configuration options.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Update Problems
+
+<AccordionGroup>
+  <Accordion title="Failed to find game diff">
+    **Fixed in version 3.15.6**
+
+    **Solutions:**
+
+    1. **Update launcher**
+       - Install version 3.15.6 or later
+
+    2. **Verify game path**
+       - Settings > General > Game Path
+       - Check path exists and is correct
+
+    3. **Check .version file**
+       ```bash
+       cat ~/.local/share/anime-game-launcher/Game/.version
+       ```
+       File should exist and contain version number
+
+    4. **Repair game**
+       - Menu > Repair Game Installation
+       - Verifies all files and version
+
+    <Info>
+      The launcher respects root `.version` file for game version parsing (added in version 3.11.0) and prioritizes parsed version over API response.
+    </Info>
+  </Accordion>
+
+  <Accordion title="Predownload issues">
+    **Multiple fixes in 3.15.x versions:**
+
+    **Progress bar not showing (3.15.2):**
+    - Update launcher
+    - Restart predownload
+
+    **Stuck on wait condition (3.15.2):**
+    - Multiple threads getting stuck
+    - Fixed in 3.15.2
+
+    **Voice pack data deleted (3.15.2):**
+    - Updating game after preload deleted voice data
+    - Fixed in 3.15.2
+
+    **Not using temp folder (3.15.1):**
+    - Preload ignored configured temp folder
+    - Fixed in 3.15.1
+
+    **Check preload status:**
+    ```bash
+    ls -la ~/.local/share/anime-game-launcher/temp/updating-*/.predownloadcomplete
+    ```
+
+    <Success>
+      All major predownload issues were fixed in versions 3.15.1 through 3.15.2. Update to latest version.
+    </Success>
+  </Accordion>
+
+  <Accordion title="Patch applying fails">
+    **hdiff patches:**
+
+    **Requirements:**
+    - Sufficient disk space
+    - Correct source files
+    - Valid patch files
+
+    **Check errors:**
+    - Console shows patch error details
+    - May indicate corrupted download
+    - Or incorrect game version
+
+    **Solutions:**
+
+    1. **Clear partial downloads**
+       ```bash
+       rm -rf ~/.local/share/anime-game-launcher/temp/updating-*
+       ```
+
+    2. **Re-download**
+       - Restart launcher
+       - Begin update again
+
+    3. **Repair game first**
+       - Menu > Repair Game Installation
+       - Ensures base files are correct
+       - Then retry update
+
+    4. **Check voiceover migration**
+       - Version 3.4.0 includes automatic 3.5 → 3.6 voiceover migration
+       - Base game hdiff errors may be caused by voiceover file conflicts
+       - Fixed in version 3.4.1
+
+    <Warning>
+      Do not manually edit or move game files during patch application. This will cause checksum mismatches.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Configuration Issues
+
+<AccordionGroup>
+  <Accordion title="Settings not saving">
+    **Check these:**
+
+    1. **File permissions**
+       ```bash
+       ls -la ~/.local/share/anime-game-launcher/config.json
+       ```
+       File must be writable
+
+    2. **Disk space**
+       ```bash
+       df -h ~/.local/share/anime-game-launcher
+       ```
+       Need space to write config
+
+    3. **JSON validity**
+       ```bash
+       cat ~/.local/share/anime-game-launcher/config.json | python -m json.tool
+       ```
+       Config must be valid JSON
+
+    4. **Flatpak permissions**
+       ```bash
+       flatpak override --user --filesystem=home moe.launcher.an-anime-game-launcher
+       ```
+
+    **Backup config:**
+    ```bash
+    cp ~/.local/share/anime-game-launcher/config.json ~/config.json.backup
+    ```
+  </Accordion>
+
+  <Accordion title="Custom launcher folder">
+    **Using LAUNCHER_FOLDER variable:**
+
+    Added in version 3.6.0, you can specify custom root path.
+
+    **Set variable:**
+    ```bash
+    export LAUNCHER_FOLDER="/path/to/custom/folder"
+    ```
+
+    **Persistent setting:**
+    Add to `~/.bashrc` or `~/.zshrc`:
+    ```bash
+    echo 'export LAUNCHER_FOLDER="/path/to/custom/folder"' >> ~/.bashrc
+    ```
+
+    **Flatpak:**
+    ```bash
+    flatpak override --user --env=LAUNCHER_FOLDER="/path/to/folder" moe.launcher.an-anime-game-launcher
+    ```
+
+    <Tip>
+      This is useful for keeping launcher files on a different drive or partition.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Components index issues">
+    **Default index:**
+    `https://github.com/an-anime-team/components`
+
+    **China users:**
+    GitHub is blocked in China. You need to:
+
+    1. **Mirror repository**
+       - Fork components repository
+       - Host on accessible platform
+       - Replace GitHub URLs with mirrors
+
+    2. **Update index path**
+       - Settings > General > Components Index
+       - Point to your mirror
+
+    3. **Update config**
+       ```json
+       {
+         "components": {
+           "path": "https://your-mirror.com/components"
+         }
+       }
+       ```
+
+    <Note>
+      See README.md lines 66-74 for detailed China version support information.
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="Low FPS">
+    **Optimization steps:**
+
+    1. **Enable FPS Unlocker**
+       - Settings > Enhancements > FPS Unlocker
+       - Unlocks 60 FPS cap
+       - Custom unlocker since version 3.9.4
+
+    2. **FSR (FidelityFX Super Resolution)**
+       - Settings > Gamescope > FSR
+       - Select quality mode (Ultra/Quality/Balanced/Performance)
+       - Quality mode setting added in 3.7.0
+
+    3. **Gamescope optimizations**
+       - Enable Gamescope
+       - Set appropriate resolution
+       - Enable integer scaling if needed
+       - NIS (NVIDIA Image Scaling) option available
+
+    4. **Graphics drivers**
+       ```bash
+       # Check driver version
+       vulkaninfo | grep "Driver Version"
+       
+       # Test Vulkan
+       vulkaninfo
+       ```
+
+    5. **DXVK version**
+       - Try different DXVK versions
+       - Newer isn't always better for all GPUs
+       - Settings > Enhancements > DXVK Version
+
+    <Tip>
+      Integer scaling, FSR, and NIS were moved to a separate group in version 3.1.0 for better organization.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="High RAM usage">
+    **Fixed in version 3.14.1**
+
+    **Improvements:**
+    - Improved RAM usage in files MD5 hash verifier
+    - Fixed RAM filling with buffered game logs (3.10.3)
+
+    **Current optimizations:**
+
+    1. **Game log limits**
+       ```bash
+       export LAUNCHER_GAME_LOG_FILE_LIMIT=10485760  # 10MB
+       ```
+       Default limit prevents log file overfilling (added 3.10.2)
+
+    2. **Reduce Sophon threads**
+       - Settings > General > Sophon Threads
+       - Fewer threads = less RAM per thread
+
+    3. **Close other applications**
+       - Free up system RAM
+       - Wine can be memory-intensive
+
+    4. **Increase swap**
+       ```bash
+       # Check current swap
+       free -h
+       
+       # Consider adding swap file if needed
+       ```
+  </Accordion>
+
+  <Accordion title="Slow downloads">
+    **Optimization:**
+
+    1. **Increase Sophon threads**
+       - Settings > General > Sophon Threads
+       - Try 8-16 threads for fast connections
+       - Default is 4 threads
+
+    2. **Change temp folder**
+       - Use SSD instead of HDD
+       - Settings > General > Temp Folder
+       - Faster disk = faster extraction
+
+    3. **Network speed**
+       ```bash
+       # Test download speed
+       speedtest-cli
+       
+       # Check if throttled
+       ```
+
+    4. **Server location**
+       - Download speed depends on game servers
+       - Usually mirrors in multiple regions
+       - Peak times may be slower
+
+    <Success>
+      Sophon multi-threading (added 3.14.0, improved 3.15.0) dramatically improves download speeds compared to single-threaded downloads.
+    </Success>
+  </Accordion>
+</AccordionGroup>
+
+## Launcher-Specific Issues
+
+<AccordionGroup>
+  <Accordion title="Background image not updating">
+    **Fixed in version 3.0.1**
+
+    **Check settings:**
+    - Settings > Appearance > Update Background
+    - Toggle must be enabled
+
+    **Background processing:**
+    - Changed in version 3.10.0
+    - Improved processing in 3.10.1
+    - Uses `dwebp` for image re-coding
+
+    **Manual update:**
+    ```bash
+    rm ~/.local/share/anime-game-launcher/background*
+    ```
+    Restart launcher to re-download.
+
+    <Note>
+      Background picture processing logic was changed in version 3.10.2, and error handling for dwebp re-coding was added in 3.10.1.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Titlebar behavior issues">
+    **Fixed in version 3.1.0**
+
+    **Desktop environment specific:**
+    - Some DEs don't respect GTK4 titlebar hints
+    - Fixed for major DEs in 3.1.0
+
+    **Workarounds:**
+    - Use client-side decorations
+    - Configure DE window rules
+    - Use Gamescope for window management
+  </Accordion>
+
+  <Accordion title="Discord RPC not working">
+    **Removed in version 3.13.0**
+
+    Discord RPC feature was removed from the launcher.
+
+    **Previous issues (if on old version):**
+    - Fixed updates in 3.10.3
+    - Icon selection added in 3.7.1
+    - Icons updating added in 3.7.3
+
+    **Alternative:**
+    No built-in Discord integration in current versions.
+  </Accordion>
+
+  <Accordion title="Proton support removed">
+    **Removed in version 3.16.0**
+
+    **Official statement:**
+    "Removed support for launching with Proton from the launcher. Launching with proton externally is unaffected."
+
+    **Using Proton externally:**
+    You can still use Proton, but must launch outside the launcher.
+
+    **Previous Proton issues:**
+    - Fixed sandbox compatibility (3.7.0)
+    - Fixed wine tools with Proton builds (3.6.0)
+    - Improved compatibility (3.2.0)
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+### Console Output
+
+Always check console output for detailed errors:
+
+**Flatpak:**
+```bash
+flatpak run moe.launcher.an-anime-game-launcher
+```
+
+**Terminal:**
+```bash
+anime-game-launcher
+```
+
+**Look for:**
+- Error messages in red
+- Warning messages
+- Stack traces
+- Network errors
+
+### Log Files
+
+**Game logs:**
+```bash
+~/.local/share/anime-game-launcher/game.log
+```
+
+**Launcher folder:**
+```bash
+~/.local/share/anime-game-launcher/
+```
+
+### Community Support
+
+**Discord server:**
+All project life happens in the Discord server (see README.md:20).
+
+**Report issues:**
+- Contact developers directly in Discord
+- Provide console output
+- Include launcher version
+- Describe steps to reproduce
+
+**Wiki:**
+[GitHub Wiki](https://github.com/an-anime-team/an-anime-game-launcher/wiki) contains FAQ and guides.
+
+### Version Information
+
+**Check launcher version:**
+- Open Settings
+- Click "About"
+- Shows launcher version, core version, SDK version
+
+**Important for bug reports:**
+- Launcher version
+- Distribution
+- Installation method (Flatpak/AUR/RPM)
+- Game version
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="First Run Setup" icon="play" href="/guides/first-run-setup">
+    Initial configuration guide
+  </Card>
+  <Card title="Updating Games" icon="download" href="/guides/updating-games">
+    Download and update procedures
+  </Card>
+  <Card title="Voice Packs" icon="language" href="/guides/voice-packs">
+    Voice pack management
+  </Card>
+  <Card title="GitHub Wiki" icon="book" href="https://github.com/an-anime-team/an-anime-game-launcher/wiki">
+    Official wiki and FAQ
+  </Card>
+</CardGroup>

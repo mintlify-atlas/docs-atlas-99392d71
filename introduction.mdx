@@ -1,0 +1,96 @@
+---
+title: Introduction
+description: A modern launcher for running anime games on Linux with Wine compatibility layers, built with GTK4 and libadwaita
+---
+
+# An Anime Game Launcher
+
+A modern, feature-rich launcher for running anime games on Linux. Built with GTK4 and libadwaita, this launcher provides seamless game management with support for multiple Wine runners, DXVK, and various quality-of-life features.
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Get up and running in minutes with our streamlined installation process
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation guides for all supported Linux distributions
+  </Card>
+  <Card title="GitHub repository" icon="github" href="https://github.com/an-anime-team/an-anime-game-launcher">
+    View source code, report issues, and contribute to the project
+  </Card>
+  <Card title="Discord community" icon="discord" href="https://discord.gg/ck37X6UWBp">
+    Join our community for support, updates, and discussions
+  </Card>
+</CardGroup>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Modern UI styles" icon="palette">
+    Choose between modern and classic interface styles with custom backgrounds and theming
+  </Card>
+  <Card title="Wine compatibility" icon="wine-glass">
+    Built-in Wine runner management with support for custom Wine builds and automatic updates
+  </Card>
+  <Card title="DXVK support" icon="layer-group">
+    Automatic DXVK installation and configuration with integrity checking for optimal performance
+  </Card>
+  <Card title="FPS unlocker" icon="gauge-high">
+    Integrated FPS unlocker support to enhance your gaming experience
+  </Card>
+  <Card title="Multi-session support" icon="users">
+    Manage multiple game accounts with the session switching feature
+  </Card>
+  <Card title="Localization" icon="language">
+    Full internationalization support with automatic language detection based on system locale
+  </Card>
+  <Card title="Game preloading" icon="clock">
+    Download game updates before they're officially released to reduce downtime
+  </Card>
+  <Card title="Chinese version" icon="flag">
+    Automatic support for the Chinese game edition with configurable components index
+  </Card>
+</CardGroup>
+
+## Command-line options
+
+The launcher supports several command-line arguments for advanced usage:
+
+```bash
+# Enable debug logging output
+anime-game-launcher --debug
+
+# Run the game directly if ready
+anime-game-launcher --run-game
+
+# Force run the game (bypass pre-download checks)
+anime-game-launcher --just-run-game
+
+# Disable verbose tracing in stdout
+anime-game-launcher --no-verbose-tracing
+
+# Switch to a specific session
+anime-game-launcher --session <session-name>
+```
+
+<Note>
+  The launcher automatically creates its data directory at `~/.local/share/anime-game-launcher` and cache directory at `~/.cache/anime-game-launcher` on first run.
+</Note>
+
+## Project status
+
+This project is in maintenance mode and is considered feature complete. It continues to receive updates with bugfixes and support for new versions of the game. The An Anime Team is working on a [universal launcher](https://github.com/an-anime-team/anime-games-launcher) that will unite all anime game launchers in the future.
+
+## System requirements
+
+- Linux operating system (any distribution)
+- GTK4 and libadwaita
+- Sufficient disk space for game installation
+- Internet connection for downloading game files and updates
+
+## Getting help
+
+All project activity happens in our Discord server. If you have questions, want to report an issue, or need support, please contact the developers directly there.
+
+<Card title="Join our Discord" icon="discord" href="https://discord.gg/ck37X6UWBp">
+  Get help, report bugs, and stay updated with the latest developments
+</Card>

@@ -1,0 +1,235 @@
+---
+title: Wine and DXVK
+description: Configure Wine versions, DXVK, and Windows compatibility layers
+---
+
+The An Anime Game Launcher uses Wine and DXVK to run the Windows game client on Linux. This page covers configuration of these critical compatibility components.
+
+## Accessing Components Settings
+
+1. Open launcher preferences
+2. Navigate to **General** tab
+3. Click **Components** to open the components management page
+
+## Wine Configuration
+
+Wine (Wine Is Not an Emulator) provides Windows API compatibility on Linux.
+
+### Selecting Wine Version
+
+<ParamField path="game.wine.selected" type="string">
+  Currently active Wine version. The launcher includes multiple Wine builds optimized for gaming.
+</ParamField>
+
+**To change Wine version:**
+
+1. Open Components settings
+2. Download desired Wine version from available list
+3. Select version from **Selected Version** dropdown
+4. Launcher will update the Wine prefix automatically
+
+<Note>
+Changing Wine versions will update your Wine prefix. This process may take a few moments as the new Wine environment is initialized.
+</Note>
+
+### Available Wine Builds
+
+The launcher provides access to multiple Wine variants:
+
+- **Wine-GE**: GloriousEggroll's gaming-optimized Wine builds (recommended)
+- **Proton-GE**: Valve's Proton with community enhancements
+- **Lutris Wine**: Lutris project's gaming-focused builds
+- **Vanilla Wine**: Official Wine releases
+
+**Recommended versions** are highlighted in the list. The launcher shows up to 6 recommended versions per Wine group.
+
+### Wine Download Location
+
+Wine builds are downloaded to:
+
+```
+~/.local/share/anime-game-launcher/game/wine/
+```
+
+### Wine Prefix
+
+The Wine prefix (Windows environment) is located at:
+
+```
+~/.local/share/anime-game-launcher/game/wine-prefix/
+```
+
+<Note>
+Do not manually modify the Wine prefix unless you understand Wine architecture. Incorrect changes can break game functionality.
+</Note>
+
+## Wine Options
+
+### Shared Libraries
+
+<ParamField path="game.wine.shared_libraries.wine" type="boolean" default="false">
+  Use system-installed Wine shared libraries instead of bundled libraries.
+  
+  Enable this if you have optimized Wine libraries installed system-wide. May improve compatibility or performance on some systems.
+</ParamField>
+
+<ParamField path="game.wine.shared_libraries.gstreamer" type="boolean" default="false">
+  Use system GStreamer libraries for multimedia support.
+  
+  Useful if your system has GStreamer with additional codec support.
+</ParamField>
+
+### Drive Mapping
+
+<ParamField path="game.wine.drives.drive_c" type="boolean" default="false">
+  Map Wine's virtual C: drive to a custom location.
+  
+  Advanced option for users who want to customize Wine filesystem structure.
+</ParamField>
+
+<ParamField path="game.wine.drives.game_folder" type="string" default="G:">
+  Map game installation folder to a specific drive letter (A: through Z:).
+  
+  Default is G: drive. This affects how the game sees its installation path within Wine.
+</ParamField>
+
+## DXVK Configuration
+
+DXVK translates DirectX 9/10/11 calls to Vulkan for better performance on Linux.
+
+### Selecting DXVK Version
+
+<ParamField path="game.dxvk.selected" type="string">
+  Currently active DXVK version.
+</ParamField>
+
+**To change DXVK version:**
+
+1. Open Components settings
+2. Scroll to DXVK section
+3. Download desired DXVK version
+4. Select version from dropdown
+5. DXVK will be installed to Wine prefix automatically
+
+### DXVK Installation Location
+
+DXVK builds are stored in:
+
+```
+~/.local/share/anime-game-launcher/game/dxvk/
+```
+
+When selected, DXVK DLLs are installed into the Wine prefix:
+
+```
+~/.local/share/anime-game-launcher/game/wine-prefix/drive_c/windows/system32/
+```
+
+### Available DXVK Builds
+
+- **DXVK**: Official DXVK releases
+- **DXVK-async**: Async patch for reduced stuttering (community build)
+- **DXVK-GPlAsync**: Additional async optimizations
+
+<Note>
+Async DXVK variants can reduce shader compilation stuttering but are not officially supported by DXVK developers.
+</Note>
+
+## Filtering Component Versions
+
+### Show Recommended Only
+
+By default, the components list shows only recommended versions (up to 6 per group). This filter can be disabled to view all available versions:
+
+1. In Components settings, locate **Recommended Only** toggle
+2. Disable to see complete version history
+3. Enable to show only tested, stable releases
+
+<Note>
+Using non-recommended versions may cause compatibility issues. Only use older or experimental versions if troubleshooting specific problems.
+</Note>
+
+## Managing Downloaded Components
+
+### Downloading Components
+
+1. Browse available Wine or DXVK versions
+2. Click download icon next to desired version
+3. Download progress shown in component row
+4. Downloaded components appear in selection dropdown
+
+### Deleting Components
+
+1. Locate downloaded component in list
+2. Click delete (trash) icon
+3. Component files removed from disk
+4. Cannot delete currently selected component
+
+<Note>
+Deleting components frees disk space. An Anime Game requires significant Wine/DXVK storage (2-5 GB per Wine build).
+</Note>
+
+## Wine Synchronization
+
+Configured in Enhancements → Wine section:
+
+<ParamField path="game.wine.sync" type="enum" default="FSync">
+  - **None**: Standard Wine synchronization (lowest performance)
+  - **ESync**: Event-based synchronization (good performance, wide compatibility)
+  - **FSync**: Futex-based synchronization (best performance, requires kernel 5.16+)
+</ParamField>
+
+**Recommendation**: Use FSync if your kernel supports it (most modern distributions). Fall back to ESync on older kernels.
+
+## Virtual Desktop Mode
+
+<ParamField path="game.wine.virtual_desktop.enabled" type="boolean" default="false">
+  Run game in Wine virtual desktop (separate Wine-managed window).
+</ParamField>
+
+<ParamField path="game.wine.virtual_desktop.width" type="number" default="1920">
+  Virtual desktop width in pixels.
+</ParamField>
+
+<ParamField path="game.wine.virtual_desktop.height" type="number" default="1080">
+  Virtual desktop height in pixels.
+</ParamField>
+
+Common presets: 1920x1080, 2560x1440, 3840x2160
+
+**When to use virtual desktop:**
+- Multi-monitor setups with focus issues
+- Games that don't properly handle fullscreen
+- Need to constrain game to specific resolution
+
+## Troubleshooting
+
+### Wine Prefix Won't Update
+
+If Wine prefix update fails when changing versions:
+
+1. Close launcher completely
+2. Backup Wine prefix: `cp -r ~/.local/share/anime-game-launcher/game/wine-prefix ~/.local/share/anime-game-launcher/game/wine-prefix.backup`
+3. Delete Wine prefix: `rm -rf ~/.local/share/anime-game-launcher/game/wine-prefix`
+4. Restart launcher - new prefix will be created
+5. Reselect Wine version
+
+### DXVK Installation Failed
+
+If DXVK installation fails:
+
+1. Check Wine prefix is healthy
+2. Try reselecting current Wine version to refresh prefix
+3. Download different DXVK version
+4. Check launcher debug log at `~/.local/share/anime-game-launcher/debug.log`
+
+### Game Won't Start After Component Update
+
+1. Revert to previous Wine/DXVK version
+2. Check game file integrity (General → Repair Game)
+3. Review launcher logs for error messages
+4. Ensure Wine prefix has write permissions
+
+<Note>
+Always keep at least two Wine versions installed for fallback options in case of issues.
+</Note>

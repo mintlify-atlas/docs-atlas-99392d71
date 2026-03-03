@@ -1,0 +1,388 @@
+---
+title: Updating Games
+description: Guide for downloading, updating, and predownloading game updates
+---
+
+An Anime Game Launcher automatically detects when game updates are available and handles the download and installation process.
+
+## Update Detection
+
+The launcher checks for updates every time it starts and periodically while running.
+
+**What gets checked:**
+- Base game version
+- Voice pack versions (for all installed languages)
+- Predownload availability (early access to upcoming updates)
+
+**Launcher states:**
+- **Launch** - Game is up to date
+- **Update Available** - New version ready to download
+- **Not Installed** - Game needs initial download
+- **Predownload Available** - Next version available early
+
+## Installing Game Updates
+
+<Steps>
+  <Step title="Update Notification">
+    When an update is available, the main launcher button changes:
+
+    - Icon changes to download symbol
+    - Button text shows "Update" or "Download"
+    - Version information displays current and target versions
+
+    The launcher detects updates by comparing:
+    - Local `.version` file in game directory
+    - Remote API version information
+    - Voice pack version files
+
+    <Info>
+      The launcher prioritizes the parsed game version over API responses (changed in version 3.11.0).
+    </Info>
+  </Step>
+
+  <Step title="Start Download">
+    Click the main action button to begin downloading.
+
+    **What happens:**
+    1. Launcher calculates required download size
+    2. Checks available disk space
+    3. Verifies temp folder configuration
+    4. Begins downloading update files
+
+    **Download method:**
+    - Uses **Sophon** technology (multi-threaded downloads)
+    - Thread count configurable in settings
+    - Downloads to temp folder before applying
+
+    <Note>
+      Sophon support was added in version 3.14.0 and significantly improves download speeds through multi-threading.
+    </Note>
+  </Step>
+
+  <Step title="Monitor Progress">
+    The launcher shows detailed progress information:
+
+    **Progress bar displays:**
+    - Current download status
+    - Download speed
+    - Percentage complete
+    - Estimated time remaining (when available)
+
+    **Status messages:**
+    - "Downloading..." - Fetching update files
+    - "Unpacking..." - Extracting archives
+    - "Applying patches..." - Installing hdiff patches
+    - "Removing outdated files..." - Cleaning up old versions
+    - "Updating permissions..." - Setting file permissions
+
+    The download process is defined in `src/ui/main/download_diff.rs`.
+  </Step>
+
+  <Step title="Apply Update">
+    After downloading, the launcher automatically:
+
+    1. **Unpacks archives** - Extracts downloaded files (7z or segmented archives)
+    2. **Applies patches** - Installs hdiff differential patches
+    3. **Updates files** - Replaces old files with new versions
+    4. **Removes outdated files** - Cleans up deprecated game files
+    5. **Updates permissions** - Sets executable permissions (chmod 755)
+    6. **Verifies installation** - Checks game integrity
+
+    <Warning>
+      Do not interrupt the update process while "Applying patches" or "Removing outdated files" is shown. This can corrupt your game installation.
+    </Warning>
+  </Step>
+
+  <Step title="Update Complete">
+    When finished:
+    - Progress bar shows 100%
+    - Main button returns to "Launch" state
+    - Game is ready to play
+
+    **If errors occur:**
+    - Toast notification shows error details
+    - Check console output for full error messages
+    - Partial downloads can be resumed
+    - See [Troubleshooting](#troubleshooting-updates) below
+  </Step>
+</Steps>
+
+## Predownloading Updates
+
+Predownload allows you to download the next game version before it's officially released.
+
+### When Predownload is Available
+
+**Predownload button appears when:**
+- Game publisher makes next version available early
+- Current game version is up to date
+- Predownload hasn't been completed yet
+
+**Button location:**
+A circular button with a save icon appears next to the main launch button.
+
+**Tooltip shows:**
+- Target version number
+- Total download size (game + voice packs)
+
+### Predownload Process
+
+<Steps>
+  <Step title="Start Predownload">
+    Click the predownload button (save icon) to begin.
+
+    **What downloads:**
+    - Base game update files
+    - All installed voice pack updates
+
+    The launcher downloads to: `{temp_folder}/updating-{component_id}/`
+  </Step>
+
+  <Step title="Download in Background">
+    Predownload works like regular updates:
+    - Shows progress in the progress bar
+    - Downloads can be paused/resumed
+    - Uses Sophon multi-threading
+
+    **Completion marker:**
+    When finished, the launcher creates `.predownloadcomplete` files in each component's temp folder.
+  </Step>
+
+  <Step title="Predownload Complete">
+    After completion:
+    - Predownload button shows success state (green checkmark)
+    - Button becomes disabled
+    - Files are ready to apply when update goes live
+
+    <Success>
+      The launcher checks for `.predownloadcomplete` files at `src/ui/main/mod.rs:325-345` to determine predownload status.
+    </Success>
+  </Step>
+
+  <Step title="Apply Predownloaded Update">
+    When the update officially releases:
+    - Main button shows "Update" action
+    - Clicking it applies the predownloaded files
+    - Installation is much faster (only unpacking/patching)
+
+    <Note>
+      Predownloaded files remain in the temp folder until the update is applied. Make sure you have sufficient disk space.
+    </Note>
+  </Step>
+</Steps>
+
+### Predownload States
+
+| Button State | Meaning |
+| --- | --- |
+| **Warning icon (orange)** | Predownload available, not started |
+| **Success icon (green)** | Predownload complete, ready to apply |
+| **Disabled** | Predownload complete or not applicable |
+| **Hidden** | No predownload available |
+
+## Voice Pack Updates
+
+Voice packs update independently from the base game.
+
+**Update behavior:**
+- Launcher checks all installed voice packs
+- Downloads only outdated packs
+- Updates apply after game update (if both available)
+
+**Voice pack update process:**
+1. Download voice pack diff to temp folder
+2. Unpack archive
+3. Apply to voice pack directory
+4. Verify installation
+
+<Tip>
+Voice packs are stored in subdirectories within the game folder and use the same update mechanism as the base game.
+</Tip>
+
+## Update Configuration
+
+### Temp Folder
+
+Configure where updates are downloaded:
+
+**Settings path:**
+Settings > General > Temp Folder
+
+**Recommendations:**
+- Use a fast drive (SSD preferred)
+- Ensure sufficient space (20+ GB recommended)
+- Avoid network drives
+
+**Default location:**
+`/tmp` or system temp directory
+
+### Sophon Threads
+
+Control download performance:
+
+**Settings path:**
+Settings > General > Sophon Threads
+
+**Recommendations:**
+- Default: 4 threads
+- Fast connections: 8-16 threads
+- Slow connections: 2-4 threads
+
+<Note>
+Sophon threads configuration is at `config.launcher.sophon.threads` and was introduced in version 3.15.0.
+</Note>
+
+## Troubleshooting Updates
+
+<AccordionGroup>
+  <Accordion title="Update stuck at 100%">
+    **Fixed in version 3.15.3**
+
+    **If you experience this:**
+    1. Update your launcher to 3.15.3 or later
+    2. Wait a few minutes - the launcher may be verifying files
+    3. Check console for error messages
+    4. Restart the launcher if truly stuck
+
+    <Info>
+      This was a known issue fixed in the changelog: "Fixed update getting stuck at 100% or close."
+    </Info>
+  </Accordion>
+
+  <Accordion title="Download loop at 100%">
+    **Fixed in version 3.15.5**
+
+    **Symptoms:**
+    - Download reaches 100%
+    - Starts again from 0%
+    - Repeats endlessly
+
+    **Solution:**
+    Update to launcher version 3.15.5 or later.
+  </Accordion>
+
+  <Accordion title="Failed to find game diff">
+    **Fixed in version 3.15.6**
+
+    **If you see this error:**
+    1. Update your launcher
+    2. Verify game installation path is correct
+    3. Check that `.version` file exists in game directory
+    4. Try running game repair from the menu
+  </Accordion>
+
+  <Accordion title="Predownload gets stuck">
+    **Fixed in version 3.15.2**
+
+    **Previous issues:**
+    - Preload progress bar not displaying
+    - Preload stuck on wait condition
+    - Voice pack preloaded data deleted during update
+
+    **Solutions:**
+    1. Update to 3.15.2 or later
+    2. Clear temp folder: `{temp}/updating-*`
+    3. Restart predownload
+  </Accordion>
+
+  <Accordion title="Not using configured temp folder">
+    **Fixed in version 3.15.1**
+
+    **Check your configuration:**
+    1. Go to Settings > General
+    2. Verify Temp Folder path
+    3. Update launcher to 3.15.1+
+    4. Restart launcher
+  </Accordion>
+
+  <Accordion title="Segmented archives fail to extract">
+    **Added support in version 3.9.1**
+
+    **If extraction fails:**
+    1. Ensure you have 7z installed: `which 7z` or `which 7za`
+    2. Check temp folder permissions
+    3. Verify sufficient disk space (2x the download size)
+    4. Check console for detailed error messages
+
+    <Note>
+      Segmented zip archives (multi-part downloads) are automatically detected and handled.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Insufficient disk space">
+    **Required space:**
+    - Download size (shown in UI)
+    - Unpacked size (usually 2-3x download)
+    - Final installation size
+
+    **Total formula:**
+    `Required = (Download × 2) + Installation`
+
+    **Solutions:**
+    1. Free up disk space
+    2. Change temp folder to a drive with more space
+    3. Remove old Wine/DXVK builds from Settings
+    4. Clear system temp files
+  </Accordion>
+
+  <Accordion title="Download errors">
+    **Common error types:**
+
+    **DownloadingError:**
+    - Network connectivity issues
+    - Server unavailable
+    - Timeout (configurable via `LAUNCHER_REQUESTS_TIMEOUT`)
+
+    **UnpackingError:**
+    - Corrupted download
+    - Missing 7z dependency
+    - Insufficient disk space
+
+    **Solutions:**
+    1. Check internet connection
+    2. Verify all dependencies installed
+    3. Try again later if servers are busy
+    4. Increase timeout: `export LAUNCHER_REQUESTS_TIMEOUT=16000`
+    5. Check download integrity in temp folder
+  </Accordion>
+</AccordionGroup>
+
+## Update Locations
+
+**Temporary files:**
+```
+{temp_folder}/
+├── updating-{game_id}/          # Game update files
+│   ├── .predownloadcomplete     # Predownload marker
+│   └── *.zip                     # Downloaded archives
+├── updating-{voice_en}/         # English voice pack
+├── updating-{voice_ja}/         # Japanese voice pack
+└── ...
+```
+
+**Game installation:**
+```
+{game_path}/
+├── .version                      # Current version file
+├── GenshinImpact.exe            # Game executable
+├── GenshinImpact_Data/          # Game data
+└── {game_name}_Data/
+    └── StreamingAssets/
+        └── Audio/
+            └── GeneratedSoundBanks/
+                └── Windows/
+                    ├── English(US)/  # Voice packs
+                    ├── Japanese/
+                    └── ...
+```
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Voice Packs" icon="language" href="/guides/voice-packs">
+    Manage voice language packs
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/guides/troubleshooting">
+    Common issues and solutions
+  </Card>
+</CardGroup>

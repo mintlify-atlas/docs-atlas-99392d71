@@ -1,0 +1,341 @@
+---
+title: Telemetry Disabling
+description: Block telemetry servers to enhance privacy while playing
+---
+
+## Overview
+
+An Anime Game Launcher includes a built-in feature to disable game telemetry by blocking telemetry servers at the system level. This enhances your privacy by preventing the game from sending usage data to tracking servers.
+
+## How It Works
+
+The telemetry disabling feature modifies your system's `/etc/hosts` file to redirect telemetry server domains to `0.0.0.0`, effectively blocking all connections to these servers.
+
+**Implementation:** `src/ui/main/disable_telemetry.rs`
+
+### Technical Details
+
+When you click the "Disable Telemetry" button, the launcher:
+
+1. Retrieves telemetry server addresses for your game edition
+2. Generates hosts file entries that redirect each server to `0.0.0.0`
+3. Appends these entries to `/etc/hosts` using elevated permissions
+
+**Code Implementation:**
+
+```rust
+let telemetry = config.launcher.edition
+    .telemetry_servers()
+    .iter()
+    .map(|server| format!("echo '0.0.0.0 {server}' >> /etc/hosts"))
+    .collect::<Vec<String>>()
+    .join(" ; ");
+```
+
+## When Telemetry Disabling is Required
+
+The launcher will show `LauncherState::TelemetryNotDisabled` when telemetry servers are not yet blocked.
+
+**Button Appearance:**
+- **Icon:** security-high-symbolic (shield icon)
+- **Label:** "Disable Telemetry"
+- **Style:** Suggested action (blue/highlighted)
+
+<Note>
+This state appears before you can launch the game, ensuring telemetry is disabled before your first play session.
+</Note>
+
+## Execution Methods
+
+The launcher uses different execution methods depending on your system environment.
+
+### Root Access Method
+
+Used on standard Linux systems:
+
+```rust
+Command::new("pkexec")
+    .arg("bash")
+    .arg("-c")
+    .arg(format!("echo '' >> /etc/hosts ; {telemetry} ; echo '' >> /etc/hosts"))
+    .spawn()
+```
+
+**What happens:**
+- `pkexec` prompts for administrator password
+- Commands are executed with root privileges
+- Blank lines are added before and after entries for readability
+
+### Flatpak Method
+
+Used when running as a Flatpak application:
+
+```rust
+let use_root = std::env::var("LAUNCHER_USE_ROOT")
+    .map(|var| var == "1")
+    .unwrap_or_else(|_| !PathBuf::from("/.flatpak-info").exists());
+
+if use_root {
+    // pkexec method
+} else {
+    // direct bash method (Flatpak has host filesystem access)
+    Command::new("bash")
+        .arg("-c")
+        .arg(format!("echo '' >> /etc/hosts ; {telemetry} ; echo '' >> /etc/hosts"))
+        .spawn()
+}
+```
+
+<Info>
+Flatpak installations may have direct host filesystem access configured, eliminating the need for pkexec.
+</Info>
+
+## Environment Variables
+
+### LAUNCHER_USE_ROOT
+
+You can override the default root access detection:
+
+- **Value:** `"1"` to force pkexec usage
+- **Default:** Auto-detected based on Flatpak presence
+
+**Example:**
+
+```bash
+export LAUNCHER_USE_ROOT=1
+```
+
+## Telemetry Server Sources
+
+Telemetry servers are defined per game edition:
+
+```rust
+config.launcher.edition.telemetry_servers()
+```
+
+Each game edition (Global, China, etc.) may have different telemetry servers. The launcher automatically uses the correct list based on your configured edition.
+
+## Process Flow
+
+<Steps>
+  <Step title="User Initiates">
+    Click the "Disable Telemetry" button when the launcher is in `TelemetryNotDisabled` state.
+  </Step>
+
+  <Step title="Disable Buttons">
+    The launcher disables all buttons to prevent multiple simultaneous operations:
+    
+    ```rust
+    sender.input(AppMsg::DisableButtons(true));
+    ```
+  </Step>
+
+  <Step title="Background Execution">
+    The operation runs in a background thread:
+    
+    ```rust
+    std::thread::spawn(move || {
+        // telemetry disabling code
+    });
+    ```
+  </Step>
+
+  <Step title="Execute Command">
+    The launcher executes the appropriate command (pkexec or direct) based on your system configuration.
+    
+    **Authentication:** You may be prompted for your administrator password.
+  </Step>
+
+  <Step title="Verify Result">
+    The command's exit status is checked:
+    
+    ```rust
+    match output.and_then(|child| child.wait_with_output()) {
+        Ok(output) => if !output.status.success() {
+            // Show error toast
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Update State">
+    After completion, buttons are re-enabled and the launcher state is updated:
+    
+    ```rust
+    sender.input(AppMsg::DisableButtons(false));
+    sender.input(AppMsg::UpdateLauncherState {
+        perform_on_download_needed: false,
+        show_status_page: true
+    });
+    ```
+  </Step>
+</Steps>
+
+## Error Handling
+
+The launcher provides error feedback if telemetry disabling fails:
+
+### Command Execution Failure
+
+```rust
+Err(err) => {
+    tracing::error!("Failed to update /etc/hosts file");
+    sender.input(AppMsg::Toast {
+        title: tr!("telemetry-servers-disabling-error"),
+        description: Some(err.to_string())
+    });
+}
+```
+
+**Common causes:**
+- User cancelled password prompt
+- Insufficient permissions
+- /etc/hosts file is read-only
+
+### Non-Zero Exit Status
+
+```rust
+Ok(output) => if !output.status.success() {
+    sender.input(AppMsg::Toast {
+        title: tr!("telemetry-servers-disabling-error"),
+        description: None // stdout/err is empty
+    });
+}
+```
+
+<Warning>
+If telemetry disabling fails, check that:
+- You have administrator access on your system
+- /etc/hosts is not write-protected
+- Your user account can use pkexec/sudo
+</Warning>
+
+## Manual Verification
+
+You can verify that telemetry has been disabled by checking your `/etc/hosts` file:
+
+```bash
+cat /etc/hosts | grep "0.0.0.0"
+```
+
+You should see entries like:
+
+```
+0.0.0.0 telemetry-server-1.example.com
+0.0.0.0 telemetry-server-2.example.com
+```
+
+## Hosts File Format
+
+The launcher adds entries in the following format:
+
+```
+# (blank line for separation)
+0.0.0.0 telemetry-server-1
+0.0.0.0 telemetry-server-2
+0.0.0.0 telemetry-server-3
+# (blank line for separation)
+```
+
+Blank lines are added before and after the telemetry entries to improve readability when manually inspecting the file.
+
+## Reverting Changes
+
+If you need to re-enable telemetry for any reason:
+
+1. Open `/etc/hosts` with elevated permissions:
+   ```bash
+   sudo nano /etc/hosts
+   ```
+
+2. Locate the telemetry server entries (addresses redirected to `0.0.0.0`)
+
+3. Delete or comment out those lines (add `#` at the start)
+
+4. Save the file
+
+<Note>
+Re-enabling telemetry is rarely necessary but may be required for certain in-game features or troubleshooting.
+</Note>
+
+## Privacy Considerations
+
+### What is Blocked
+
+- Analytics and tracking servers
+- Usage statistics collection
+- Telemetry data transmission
+- Behavioral tracking endpoints
+
+### What is NOT Blocked
+
+- Game update servers
+- Authentication servers
+- Content delivery networks (CDN)
+- Multiplayer/online features
+
+<Info>
+Disabling telemetry does not affect game functionality. All gameplay features, updates, and online interactions continue to work normally.
+</Info>
+
+## Security Notes
+
+### System Modification
+
+Modifying `/etc/hosts` is a system-level change that:
+
+- Requires administrator privileges
+- Affects all applications system-wide
+- Persists across system reboots
+- Can be manually reverted at any time
+
+### pkexec Safety
+
+The launcher uses `pkexec` (PolicyKit) rather than `sudo` for several reasons:
+
+- Better integration with desktop environments
+- Graphical password prompt
+- Granular permission control
+- Audit logging
+
+<Warning>
+Always verify the password prompt is from pkexec before entering your password. Legitimate prompts will show the command being executed.
+</Warning>
+
+## Troubleshooting
+
+### Password Prompt Doesn't Appear
+
+**Possible causes:**
+- pkexec is not installed
+- PolicyKit is not configured
+- Running in a restricted environment
+
+**Solution:** Install `polkit` package or set `LAUNCHER_USE_ROOT=0` to try alternative method
+
+### Permission Denied Error
+
+**Possible causes:**
+- User account doesn't have admin rights
+- PolicyKit rules prevent the operation
+
+**Solution:** Add your user to the `wheel` or `sudo` group, or modify PolicyKit rules
+
+### Changes Don't Persist
+
+**Possible causes:**
+- System restore on boot
+- Immutable filesystem
+- Network manager overriding /etc/hosts
+
+**Solution:** Check for system management tools that may be resetting /etc/hosts
+
+## Logging
+
+Telemetry disabling operations are logged:
+
+```rust
+tracing::error!("Failed to update /etc/hosts file");
+```
+
+View logs in the debug file (Menu → Debug File) for detailed troubleshooting information.

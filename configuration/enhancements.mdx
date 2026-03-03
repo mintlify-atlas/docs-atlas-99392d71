@@ -1,0 +1,377 @@
+---
+title: Enhancements
+description: Configure launcher enhancements and game optimizations
+---
+
+The Enhancements tab provides advanced options to optimize game performance, enable special features, and manage game sessions.
+
+## Game Sessions
+
+Game sessions allow you to maintain multiple independent game configurations and switch between them.
+
+### Creating Sessions
+
+1. Open Preferences → Enhancements → Game
+2. Enter session name in the text field
+3. Click **Add** button
+4. Session is created with current Wine prefix snapshot
+
+<ParamField path="sessions" type="object">
+  Game sessions stored in `~/.local/share/anime-game-launcher/game/sessions/`.
+  
+  Each session contains a complete Wine prefix backup allowing you to maintain separate configurations, mods, or settings.
+</ParamField>
+
+### Switching Sessions
+
+1. Click on desired session in the list
+2. Session Wine prefix is applied to game
+3. Current session is marked with radio button
+
+### Managing Sessions
+
+<ParamField path="sessions.update" type="action">
+  **Update Session**: Click refresh icon to save current Wine prefix state to session
+</ParamField>
+
+<ParamField path="sessions.delete" type="action">
+  **Delete Session**: Click trash icon to remove session and its data
+</ParamField>
+
+<Note>
+Sessions consume disk space (each contains full Wine prefix ~1-2 GB). Use sessions for significantly different configurations, not minor changes.
+</Note>
+
+## Sandbox Settings
+
+The launcher can sandbox the game using `bubblewrap` for enhanced security and isolation.
+
+### Enabling Sandbox
+
+<ParamField path="sandbox.enabled" type="boolean" default="false">
+  Enable game sandboxing using bubblewrap.
+  
+  Requires `bubblewrap` package installed on your system.
+</ParamField>
+
+<ParamField path="sandbox.isolate_home" type="boolean" default="false">
+  Hide home directory from game process.
+  
+  Game will not have access to files in your home directory outside its own folders.
+</ParamField>
+
+### Sandbox Configuration
+
+<ParamField path="sandbox.hostname" type="string">
+  Custom hostname visible to sandboxed game.
+  
+  Leave empty to use system hostname.
+</ParamField>
+
+<ParamField path="sandbox.args" type="string">
+  Additional bubblewrap command-line arguments.
+  
+  See [bwrap documentation](https://man.archlinux.org/man/bwrap.1) for available options.
+</ParamField>
+
+### Private Directories
+
+<ParamField path="sandbox.private" type="array">
+  Directories to make private (empty) within sandbox.
+  
+  Game will see these directories as empty, even if they contain files on your system.
+</ParamField>
+
+**To add private directory:**
+
+1. Enter directory path (e.g., `/home/user/Documents`)
+2. Click **Add** button
+3. Directory will be hidden from game
+
+### Shared Directories
+
+<ParamField path="sandbox.mounts.bind" type="object">
+  Directories to share (mount) into sandbox with read-write access.
+</ParamField>
+
+<ParamField path="sandbox.mounts.read_only" type="object">
+  Directories to share into sandbox with read-only access.
+</ParamField>
+
+**To share directory:**
+
+1. **Original Path**: Source directory on your system
+2. **New Path**: Target path within sandbox
+3. **Read Only**: Toggle for read-only access
+4. Click **Add** button
+
+Example: Share `~/Screenshots` as `/data/screenshots` (read-only)
+
+### Symlinks
+
+<ParamField path="sandbox.mounts.symlinks" type="object">
+  Symbolic links to create within sandbox.
+</ParamField>
+
+**To create symlink:**
+
+1. **Original Path**: Link target
+2. **New Path**: Link path within sandbox
+3. Click **Add**
+
+<Note>
+Sandboxing is an advanced feature. Incorrect configuration may prevent game from launching. Start with minimal restrictions and add more as needed.
+</Note>
+
+## Environment Variables
+
+Custom environment variables can be set for the game process.
+
+### Adding Environment Variables
+
+1. Open Preferences → Enhancements → Environment
+2. **Name**: Variable name (e.g., `DXVK_HUD`)
+3. **Value**: Variable value (e.g., `fps`)
+4. Click **Add** button
+
+<ParamField path="game.environment" type="object">
+  Key-value pairs of environment variables passed to game.
+</ParamField>
+
+### Common Environment Variables
+
+**DXVK Configuration:**
+
+```
+DXVK_HUD=fps,memory,gpuload
+DXVK_LOG_LEVEL=info
+DXVK_STATE_CACHE_PATH=/path/to/cache
+```
+
+**Mesa/Vulkan:**
+
+```
+MESA_SHADER_CACHE_DIR=/path/to/cache
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json
+```
+
+**Wine:**
+
+```
+WINEDEBUG=-all
+WINEDLLOVERRIDES=dxgi=n,b
+```
+
+<Note>
+Environment variables can significantly affect game behavior. Only add variables if you understand their purpose.
+</Note>
+
+## Game Command
+
+<ParamField path="game.command" type="string">
+  Custom command wrapper for launching game.
+  
+  Use `%command%` placeholder for the game executable. The launcher will replace this with actual launch command.
+</ParamField>
+
+**Example commands:**
+
+```bash
+# Run with custom environment
+env CUSTOM_VAR=value %command%
+
+# Launch with debugger
+gdb -ex run --args %command%
+
+# Use custom Wine build
+/path/to/custom/wine %command%
+
+# Add command-line arguments
+%command% --custom-arg
+```
+
+<Note>
+Game command is an advanced feature for debugging or using custom launchers. Incorrect command will prevent game from starting.
+</Note>
+
+## HUD Overlays
+
+<ParamField path="game.enhancements.hud" type="enum" default="None">
+  On-screen performance overlay:
+  
+  - **None**: No overlay
+  - **DXVK**: Built-in DXVK statistics (FPS, frame time, memory)
+  - **MangoHud**: Advanced monitoring (requires `mangohud` package)
+</ParamField>
+
+### DXVK HUD
+
+Minimal overlay showing:
+- FPS (frames per second)
+- Frame time
+- GPU/CPU load
+- Memory usage
+
+Configured via `DXVK_HUD` environment variable.
+
+### MangoHud
+
+Advanced overlay with:
+- Detailed frame timing graphs
+- CPU/GPU temperature
+- Per-core CPU usage
+- VRAM usage
+- Customizable layout
+
+Configure in `~/.config/MangoHud/MangoHud.conf`
+
+## FidelityFX Super Resolution (FSR)
+
+AMD FSR upscaling technology for improved performance.
+
+<ParamField path="game.enhancements.fsr.enabled" type="boolean" default="false">
+  Enable FSR upscaling.
+  
+  Game renders at lower resolution and FSR upscales to target resolution, improving performance with minimal quality loss.
+</ParamField>
+
+<ParamField path="game.enhancements.fsr.quality" type="enum" default="Balanced">
+  FSR quality mode:
+  
+  - **Ultra Quality**: 1.3x upscaling (77% render resolution)
+  - **Quality**: 1.5x upscaling (67% render resolution)
+  - **Balanced**: 1.7x upscaling (59% render resolution)
+  - **Performance**: 2.0x upscaling (50% render resolution)
+</ParamField>
+
+<Note>
+FSR works best at higher display resolutions (1440p, 4K). At 1080p, quality differences are more noticeable.
+</Note>
+
+## GameMode
+
+<ParamField path="game.enhancements.gamemode" type="boolean" default="false">
+  Enable Feral GameMode.
+  
+  Optimizes CPU governor, I/O priority, and scheduler for gaming. Requires `gamemode` package.
+</ParamField>
+
+GameMode provides:
+- CPU frequency scaling optimization
+- Higher process priority
+- Disabled screen saver during gaming
+- GPU performance mode
+
+Check if GameMode is active:
+```bash
+gamemoded -s
+```
+
+## Gamescope
+
+Micro-compositor for game windows with advanced features.
+
+<ParamField path="game.enhancements.gamescope.enabled" type="boolean" default="false">
+  Run game through Gamescope compositor.
+  
+  Requires `gamescope` package. Provides better resolution handling, upscaling, and frame pacing.
+</ParamField>
+
+### Gamescope Settings
+
+Click the settings icon next to Gamescope toggle to configure:
+
+<ParamField path="game.enhancements.gamescope.window_mode" type="enum" default="Default">
+  Window mode:
+  - **Default**: Standard windowed mode
+  - **Borderless**: Borderless fullscreen
+  - **Fullscreen**: Exclusive fullscreen
+  - **Headless**: No window (for testing)
+</ParamField>
+
+<ParamField path="game.enhancements.gamescope.game_window" type="object">
+  Game render resolution (internal resolution).
+  
+  - **Width**: Game rendering width
+  - **Height**: Game rendering height
+</ParamField>
+
+<ParamField path="game.enhancements.gamescope.gamescope_window" type="object">
+  Output window resolution (display resolution).
+  
+  Gamescope upscales game_window to gamescope_window resolution.
+</ParamField>
+
+<ParamField path="game.enhancements.gamescope.framerate.focused" type="number">
+  Frame rate limit when window is focused.
+</ParamField>
+
+<ParamField path="game.enhancements.gamescope.framerate.unfocused" type="number">
+  Frame rate limit when window is not focused.
+</ParamField>
+
+### Gamescope Example Configuration
+
+**1080p to 4K upscaling:**
+- Game Window: 1920x1080
+- Gamescope Window: 3840x2160
+- Framerate: 60 (focused), 30 (unfocused)
+
+**720p low-end system:**
+- Game Window: 1280x720
+- Gamescope Window: 1920x1080
+- Framerate: 60
+
+## FPS Unlocker
+
+Removes the game's 60 FPS limit.
+
+<ParamField path="game.enhancements.fps_unlocker.enabled" type="boolean" default="false">
+  Enable FPS unlocker.
+  
+  Allows game to run at higher frame rates for smoother gameplay.
+</ParamField>
+
+<ParamField path="game.enhancements.fps_unlocker.config.fps" type="number" default="120">
+  Target FPS limit.
+  
+  Common values: 90, 120, 144, 165, 180, 240
+</ParamField>
+
+<ParamField path="game.enhancements.fps_unlocker.config.interval" type="number" default="5000">
+  Check interval in milliseconds.
+  
+  How often the unlocker verifies FPS settings (1000-60000 ms recommended).
+</ParamField>
+
+<Note>
+**Important**: Higher FPS requires more powerful hardware. Monitor temperatures and performance. Some users report FPS unlocking may violate game terms of service.
+</Note>
+
+## Performance Tips
+
+### Best Settings for Performance
+
+1. **Wine Sync**: FSync (requires modern kernel)
+2. **DXVK**: Latest recommended async version
+3. **FSR**: Balanced or Performance mode
+4. **GameMode**: Enabled
+5. **FPS Unlocker**: Match monitor refresh rate
+6. **HUD**: None or minimal DXVK HUD
+
+### Best Settings for Quality
+
+1. **FSR**: Ultra Quality or disabled
+2. **FPS Unlocker**: 60 FPS (game default)
+3. **Wine**: Latest Wine-GE
+4. **Virtual Desktop**: Disabled for native fullscreen
+
+### Troubleshooting Performance
+
+If experiencing poor performance:
+
+1. Disable all enhancements
+2. Test game with defaults
+3. Enable enhancements one at a time
+4. Monitor with MangoHud to identify bottlenecks
+5. Check `~/.local/share/anime-game-launcher/debug.log` for errors

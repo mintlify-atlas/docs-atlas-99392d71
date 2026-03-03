@@ -1,0 +1,395 @@
+---
+title: Wine Configuration
+description: Configure Wine and compatibility layers for running the game on Linux
+---
+
+## Overview
+
+Wine is a compatibility layer that allows running Windows applications on Linux. An Anime Game Launcher automatically manages Wine installation, configuration, and Wine prefix creation to ensure optimal game performance.
+
+## Wine Installation
+
+### Automatic Wine Detection
+
+When the launcher detects that Wine is not installed (`LauncherState::WineNotInstalled`), it will prompt you to download a compatible Wine version.
+
+**Implementation:** The Wine download process is handled in `src/ui/main/download_wine.rs`
+
+### Download Process
+
+<Steps>
+  <Step title="Check for Downloaded Versions">
+    The launcher first checks if any Wine versions are already downloaded:
+    
+    ```rust
+    wine::get_downloaded(&CONFIG.components.path, &config.game.wine.builds)
+    ```
+    
+    If found, it automatically selects the first available version and updates the launcher state.
+  </Step>
+
+  <Step title="Select Wine Version">
+    If no Wine is downloaded, the launcher determines which version to install:
+    
+    - Uses `config.game.wine.selected` if specified
+    - Falls back to latest available version via `wine::Version::latest(&CONFIG.components.path)`
+  </Step>
+
+  <Step title="Download and Install">
+    The launcher creates an installer and downloads the Wine build:
+    
+    ```rust
+    match Installer::new(wine.uri) {
+        Ok(mut installer) => {
+            if let Some(temp_folder) = &config.launcher.temp {
+                installer.temp_folder = temp_folder.to_path_buf();
+            }
+            installer.install(&config.game.wine.builds, callback);
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Configure and Update State">
+    After successful installation:
+    
+    ```rust
+    config.game.wine.selected = Some(wine.name.clone());
+    Config::update(config);
+    ```
+    
+    The launcher state is updated to proceed to the next setup step.
+  </Step>
+</Steps>
+
+### Progress Tracking
+
+During Wine installation, the launcher displays real-time progress:
+
+- **Downloading:** Shows download progress with percentage and speed
+- **Unpacking:** Displays extraction progress
+- **Errors:** Shows detailed error messages for download or unpacking failures
+
+```rust
+InstallerUpdate::DownloadingError(err) => {
+    sender.input(AppMsg::Toast {
+        title: tr!("downloading-failed"),
+        description: Some(err.to_string())
+    });
+}
+
+InstallerUpdate::UnpackingError(err) => {
+    sender.input(AppMsg::Toast {
+        title: tr!("unpacking-failed"),
+        description: Some(err.clone())
+    });
+}
+```
+
+## Wine Configuration
+
+### Wine Builds Directory
+
+**Location:** `config.game.wine.builds`
+
+This directory stores all downloaded Wine versions. Multiple versions can coexist, allowing you to switch between them.
+
+### Selected Wine Version
+
+**Configuration:** `config.game.wine.selected`
+
+Stores the name of the currently selected Wine version. This value is automatically set during installation but can be changed in launcher preferences.
+
+### Components Path
+
+**Configuration:** `CONFIG.components.path`
+
+The components path contains the Wine version index and metadata. The launcher uses this to:
+
+- Query available Wine versions
+- Check for updates
+- Download new versions
+
+<Info>
+The components index is automatically synchronized from remote servers during launcher startup.
+</Info>
+
+## Wine Prefix
+
+A Wine prefix is an isolated Windows environment where the game runs.
+
+### Prefix Location
+
+**Configuration:** `config.game.wine.prefix`
+
+The prefix directory contains:
+- Windows registry simulation
+- System libraries
+- Application data
+- DirectX/DXVK files
+
+### Prefix Creation
+
+When the launcher detects `LauncherState::PrefixNotExists`, it will create a new Wine prefix.
+
+**Implementation:** `src/ui/main/create_prefix.rs`
+
+<Steps>
+  <Step title="Get Selected Wine">
+    Retrieves the currently configured Wine version:
+    
+    ```rust
+    match config.get_selected_wine() {
+        Ok(Some(wine)) => { /* proceed */ }
+    }
+    ```
+  </Step>
+
+  <Step title="Configure Wine Instance">
+    Creates a Wine instance with the proper configuration:
+    
+    ```rust
+    let wine = wine.to_wine(
+        config.components.path,
+        Some(config.game.wine.builds.join(&wine.name))
+    )
+    .with_prefix(&config.game.wine.prefix)
+    .with_loader(WineLoader::Current);
+    ```
+  </Step>
+
+  <Step title="Initialize Prefix">
+    Creates the Wine prefix directory structure:
+    
+    ```rust
+    wine.init_prefix(None::<&str>)
+    ```
+    
+    This process may take a minute as Wine sets up the Windows environment.
+  </Step>
+
+  <Step title="Update State">
+    After successful prefix creation, the launcher updates its state to check for next required actions (typically DXVK installation).
+  </Step>
+</Steps>
+
+<Note>
+Prefix creation is a one-time operation. The prefix is reused for all subsequent game launches.
+</Note>
+
+### Wine Loader
+
+The launcher uses `WineLoader::Current` which means:
+
+- Wine is loaded from the configured builds directory
+- The prefix is isolated from system Wine installations
+- Each game edition can use a different Wine version
+
+## DXVK Installation
+
+DXVK is a Vulkan-based implementation of Direct3D that provides better performance than Wine's built-in DirectX translation.
+
+### When DXVK is Required
+
+The launcher will prompt for DXVK installation when in `LauncherState::DxvkNotInstalled` state.
+
+**Implementation:** `src/ui/main/install_dxvk.rs`
+
+### Installation Process
+
+<Steps>
+  <Step title="Verify Wine Configuration">
+    DXVK requires a properly configured Wine installation:
+    
+    ```rust
+    match config.get_selected_wine() {
+        Ok(Some(wine_config)) => { /* proceed */ }
+        Ok(None) => { /* show error: no Wine selected */ }
+        Err(err) => { /* show error */ }
+    }
+    ```
+  </Step>
+
+  <Step title="Get Latest DXVK Version">
+    Queries the components index for the latest DXVK version:
+    
+    ```rust
+    let latest = match Version::latest(components_path) {
+        Ok(version) => version,
+        Err(err) => { /* handle error */ }
+    };
+    ```
+  </Step>
+
+  <Step title="Download DXVK (if needed)">
+    Checks if DXVK is already downloaded:
+    
+    ```rust
+    let dxvk_folder = config.game.dxvk.builds.join(&latest.name);
+    
+    if !dxvk_folder.exists() {
+        // Download DXVK using Installer
+        installer.install(&config.game.dxvk.builds, callback);
+    }
+    ```
+  </Step>
+
+  <Step title="Install to Wine Prefix">
+    Installs DXVK into the Wine prefix:
+    
+    ```rust
+    let wine = wine_config
+        .to_wine(components_path, Some(config.game.wine.builds.join(&wine_config.name)))
+        .with_prefix(config.game.wine.prefix)
+        .with_loader(WineLoader::Current);
+    
+    Dxvk::install(&wine, dxvk_folder, InstallParams::default())
+    ```
+  </Step>
+
+  <Step title="Update Launcher State">
+    After successful installation, the launcher state is updated to proceed to the next step.
+  </Step>
+</Steps>
+
+### DXVK Configuration
+
+**Builds Directory:** `config.game.dxvk.builds`
+
+Stores downloaded DXVK versions. Like Wine, multiple DXVK versions can be stored.
+
+**Install Parameters:** `InstallParams::default()`
+
+Uses default DXVK installation parameters. This can be customized in future versions for advanced users.
+
+## Error Handling
+
+The Wine and DXVK installation processes include comprehensive error handling:
+
+### Wine Download Errors
+
+```rust
+InstallerUpdate::DownloadingError(err) => {
+    tracing::error!("Downloading failed: {err}");
+    sender.input(AppMsg::Toast {
+        title: tr!("downloading-failed"),
+        description: Some(err.to_string())
+    });
+}
+```
+
+### Wine Selection Errors
+
+```rust
+Ok(None) => {
+    sender.input(AppMsg::Toast {
+        title: tr!("failed-get-selected-wine"),
+        description: None
+    });
+}
+```
+
+### DXVK Installation Errors
+
+```rust
+if let Err(err) = Dxvk::install(&wine, dxvk_folder, InstallParams::default()) {
+    tracing::error!("Failed to install DXVK: {}", err);
+    sender.input(AppMsg::Toast {
+        title: tr!("dxvk-install-failed"),
+        description: Some(err.to_string())
+    });
+}
+```
+
+<Warning>
+If Wine or DXVK installation fails, check the debug log file for detailed error information. Access it via Menu → Debug File.
+</Warning>
+
+## Components Index Synchronization
+
+The launcher automatically synchronizes the components index on startup to ensure you have access to the latest Wine and DXVK versions.
+
+**Process:**
+
+```rust
+let components = ComponentsLoader::new(&CONFIG.components.path);
+
+match components.is_sync(&CONFIG.components.servers) {
+    Ok(None) => {
+        for host in &CONFIG.components.servers {
+            match components.sync(host) {
+                Ok(changes) => {
+                    // Show toast with update information
+                    break;
+                }
+                Err(err) => { /* try next server */ }
+            }
+        }
+    }
+}
+```
+
+**Servers:** `CONFIG.components.servers`
+
+Contains a list of component repository URLs. The launcher tries each server until successful.
+
+<Info>
+Component index updates are non-blocking and happen in the background during launcher initialization.
+</Info>
+
+## Advanced Configuration
+
+### Custom Temp Folder
+
+Both Wine and DXVK downloads respect the configured temp folder:
+
+```rust
+if let Some(temp_folder) = &config.launcher.temp {
+    installer.temp_folder = temp_folder.to_path_buf();
+}
+```
+
+### Manual Wine Selection
+
+While the launcher automatically selects Wine versions, you can manually configure:
+
+- `config.game.wine.selected` - Name of Wine version to use
+- `config.game.wine.builds` - Directory containing Wine builds
+
+### Wine Prefix Management
+
+The Wine prefix can be:
+
+- Manually deleted to reset the Windows environment
+- Backed up before major game updates
+- Shared between different game editions (not recommended)
+
+<Warning>
+Deleting the Wine prefix will require recreating it and reinstalling DXVK. Game files are not affected.
+</Warning>
+
+## File Structure
+
+```
+config.components.path/
+├── wine/
+│   └── [version index and metadata]
+└── dxvk/
+    └── [version index and metadata]
+
+config.game.wine.builds/
+├── wine-version-1/
+├── wine-version-2/
+└── ...
+
+config.game.dxvk.builds/
+├── dxvk-version-1/
+├── dxvk-version-2/
+└── ...
+
+config.game.wine.prefix/
+├── drive_c/
+├── system.reg
+├── user.reg
+└── ...
+```

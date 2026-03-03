@@ -1,0 +1,171 @@
+---
+title: Settings Overview
+description: Complete overview of launcher settings and preferences
+---
+
+The An Anime Game Launcher provides extensive configuration options to customize your gaming experience. Settings are organized into two main categories: **General** and **Enhancements**.
+
+## Configuration Location
+
+All launcher settings are stored in:
+
+```
+~/.local/share/anime-game-launcher/
+```
+
+The configuration file is automatically saved when you close the preferences window.
+
+<Note>
+Changes to settings are applied immediately, but some options (like Wine version changes) may require the launcher to be restarted.
+</Note>
+
+## General Settings
+
+The General tab contains core launcher configuration:
+
+### Appearance
+
+<ParamField path="launcher.style" type="enum" default="Modern">
+  Choose between **Modern** or **Classic** launcher styles. Classic style includes a custom background image.
+  
+  - **Modern**: Clean, minimal interface with system theme integration
+  - **Classic**: Traditional launcher with custom background artwork
+</ParamField>
+
+<ParamField path="launcher.language" type="string">
+  Launcher interface language. Supports multiple languages including English, Chinese, Japanese, Korean, and more.
+</ParamField>
+
+### Game Configuration
+
+<ParamField path="launcher.edition" type="enum" default="Global">
+  Game edition to launch:
+  - **Global**: International version (Hoyoverse)
+  - **China**: Chinese mainland version
+</ParamField>
+
+<ParamField path="launcher.environment" type="enum" default="PC">
+  Game environment type:
+  - **Hoyoverse**: PC client
+  - **Google Play**: Android client emulation
+</ParamField>
+
+<ParamField path="game.voices" type="array">
+  Installed voice-over packages. Supports:
+  - English (en-us)
+  - Japanese (ja-jp)
+  - Korean (ko-kr)
+  - Chinese (zh-cn)
+</ParamField>
+
+### Launcher Behavior
+
+<ParamField path="launcher.behavior" type="enum" default="Nothing">
+  Action when launching the game:
+  - **Nothing**: Keep launcher window open
+  - **Hide**: Minimize launcher to system tray
+  - **Close**: Exit launcher completely
+</ParamField>
+
+### Components
+
+Access the Components page to manage Wine and DXVK versions. See [Wine and DXVK Configuration](/configuration/wine-and-dxvk) for details.
+
+### Wine Tools
+
+Quick access to Wine utilities:
+
+- **Command Line** (`wineconsole`): Wine console terminal
+- **Registry Editor** (`regedit`): Windows registry editor
+- **Explorer** (`explorer`): File browser
+- **Task Manager** (`taskmgr`): Process manager
+- **Configuration** (`winecfg`): Wine settings
+- **Debugger** (`winedbg`): Wine debugger
+
+## Enhancements Settings
+
+The Enhancements tab provides advanced game optimization options:
+
+### Wine Configuration
+
+<ParamField path="game.wine.sync" type="enum" default="FSync">
+  Synchronization method for improved performance:
+  - **None**: No special synchronization
+  - **ESync**: Event-based synchronization
+  - **FSync**: Futex-based synchronization (best performance)
+</ParamField>
+
+<ParamField path="game.wine.language" type="enum" default="System">
+  Wine environment language. Can be set independently from launcher language.
+</ParamField>
+
+<ParamField path="game.wine.borderless" type="boolean" default="false">
+  Enable borderless window mode for the game.
+</ParamField>
+
+<ParamField path="game.wine.virtual_desktop.enabled" type="boolean" default="false">
+  Run game in a virtual desktop. Useful for multi-monitor setups.
+</ParamField>
+
+### Game Enhancements
+
+<ParamField path="game.enhancements.hud" type="enum" default="None">
+  On-screen display overlay:
+  - **None**: No overlay
+  - **DXVK**: DXVK performance statistics
+  - **MangoHud**: Advanced performance monitoring
+</ParamField>
+
+<ParamField path="game.enhancements.fsr.enabled" type="boolean" default="false">
+  Enable AMD FidelityFX Super Resolution upscaling for improved performance.
+</ParamField>
+
+<ParamField path="game.enhancements.fsr.quality" type="enum" default="Balanced">
+  FSR quality preset:
+  - **Ultra Quality**: Best image quality
+  - **Quality**: Balanced quality
+  - **Balanced**: Performance/quality balance
+  - **Performance**: Best performance
+</ParamField>
+
+<ParamField path="game.enhancements.gamemode" type="boolean" default="false">
+  Enable Feral GameMode for optimized CPU scheduling. Requires `gamemode` package.
+</ParamField>
+
+<ParamField path="game.enhancements.gamescope.enabled" type="boolean" default="false">
+  Run game through Gamescope compositor. Requires `gamescope` package.
+</ParamField>
+
+### FPS Unlocker
+
+<ParamField path="game.enhancements.fps_unlocker.enabled" type="boolean" default="false">
+  Unlock game framerate beyond default 60 FPS limit.
+</ParamField>
+
+<ParamField path="game.enhancements.fps_unlocker.config.fps" type="number" default="120">
+  Target framerate. Common values: 90, 120, 144, 165, 180, 240.
+</ParamField>
+
+<Note>
+Using the FPS unlocker may increase resource usage. Ensure your system can handle the target framerate.
+</Note>
+
+## Advanced Settings
+
+For advanced configuration options, see:
+
+- [Wine and DXVK Configuration](/configuration/wine-and-dxvk)
+- [Enhancements Configuration](/configuration/enhancements)
+- [Game Paths Configuration](/configuration/game-paths)
+
+## Repairing Game Files
+
+The launcher includes a game repair utility accessible from the General settings:
+
+1. Open Preferences → General
+2. Click **Repair Game** button
+3. Launcher will verify and repair corrupted game files
+
+<Note>
+Game repair requires downloading files and may take significant time depending on the extent of corruption.
+</Note>
